@@ -108,8 +108,15 @@ def _ac_kappa(lambda_risk: float, sigma_bin: float, eta_tilde: float) -> float:
 def _ac_inventory(
     order_size: float, kappa: float, horizon: float, n_bins: int, dt: float
 ) -> list[float]:
-    """Inventory trajectory x(t_i) = X · sinh(κ(T−t_i)) / sinh(κT)."""
-    sinh_kt = math.sinh(kappa * horizon)
+    """Inventory trajectory x(t_i) = X · sinh(κ(T−t_i)) / sinh(κT).
+
+    When κT > 500 the sinh ratio overflows; use the large-κT asymptotic
+    exp(−κt_i), which correctly collapses to near-instant execution.
+    """
+    kT = kappa * horizon
+    if kT > 500:
+        return [order_size * math.exp(-kappa * i * dt) for i in range(n_bins + 1)]
+    sinh_kt = math.sinh(kT)
     return [
         order_size * math.sinh(kappa * (horizon - i * dt)) / sinh_kt
         for i in range(n_bins + 1)
