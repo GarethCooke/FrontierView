@@ -1,60 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FrontierView — Model Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
     /* ── Design tokens — garethcooke.com palette ─────────────────────── */
     :root {
-      --md-primary:           #22d3ee;
-      --md-on-primary:        #083344;
+      --md-primary: #22d3ee;
+      --md-on-primary: #083344;
       --md-primary-container: #0e7490;
-      --md-on-primary-cont:   #cffafe;
+      --md-on-primary-cont: #cffafe;
 
-      --md-secondary:         #67e8f9;
-      --md-on-secondary:      #0c4a6e;
+      --md-secondary: #67e8f9;
+      --md-on-secondary: #0c4a6e;
 
-      --md-tertiary:          #d6bee4;
-      --md-on-tertiary:       #3b2948;
+      --md-tertiary: #d6bee4;
+      --md-on-tertiary: #3b2948;
 
-      --md-error:             #ffb4ab;
-      --md-error-container:   #93000a;
+      --md-error: #ffb4ab;
+      --md-error-container: #93000a;
 
-      --md-surface:           #0b0f1a;
-      --md-surface-1:         #0f172a;
-      --md-surface-2:         #1e293b;
-      --md-surface-3:         #334155;
-      --md-surface-4:         #475569;
-      --md-on-surface:        #f1f5f9;
-      --md-on-surface-var:    #94a3b8;
-      --md-outline:           #64748b;
-      --md-outline-var:       rgba(255,255,255,0.08);
+      --md-surface: #0b0f1a;
+      --md-surface-1: #0f172a;
+      --md-surface-2: #1e293b;
+      --md-surface-3: #334155;
+      --md-surface-4: #475569;
+      --md-on-surface: #f1f5f9;
+      --md-on-surface-var: #94a3b8;
+      --md-outline: #64748b;
+      --md-outline-var: rgba(255, 255, 255, 0.08);
 
-      --md-warning:           #ffb74d;
+      --md-warning: #ffb74d;
       --md-warning-container: #3d2000;
-      --md-success:           #79d47f;
+      --md-success: #79d47f;
       --md-success-container: #003910;
 
-      --md-shape-xs:   4px;
-      --md-shape-sm:   8px;
-      --md-shape-md:   12px;
-      --md-shape-lg:   16px;
-      --md-shape-xl:   28px;
+      --md-shape-xs: 4px;
+      --md-shape-sm: 8px;
+      --md-shape-md: 12px;
+      --md-shape-lg: 16px;
+      --md-shape-xl: 28px;
       --md-shape-full: 9999px;
 
-      --md-elev1: 0 1px 2px rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
-      --md-elev2: 0 1px 2px rgba(0,0,0,.3), 0 2px 6px 2px rgba(0,0,0,.15);
-      --md-elev3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px rgba(0,0,0,.3);
+      --md-elev1: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 3px 1px rgba(0, 0, 0, .15);
+      --md-elev2: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+      --md-elev3: 0 4px 8px 3px rgba(0, 0, 0, .15), 0 1px 3px rgba(0, 0, 0, .3);
     }
 
     /* ── Reset & base ────────────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
       background: var(--md-surface);
@@ -62,700 +75,1442 @@
       line-height: 1.6;
       font-size: 14px;
     }
-    a { color: var(--md-primary); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    strong { color: var(--md-on-surface); font-weight: 500; }
+
+    a {
+      color: var(--md-primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    strong {
+      color: var(--md-on-surface);
+      font-weight: 500;
+    }
 
     /* ── Navigation rail ─────────────────────────────────────────────── */
     .nav {
-      position: fixed; top: 0; left: 0; bottom: 0; width: 80px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 80px;
       background: var(--md-surface-1);
       border-right: 1px solid var(--md-outline-var);
-      display: flex; flex-direction: column; align-items: center;
-      padding: 1rem 0; gap: 0.25rem; z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+      gap: 0.25rem;
+      z-index: 100;
     }
+
     .nav-logo {
-      width: 48px; height: 48px; border-radius: var(--md-shape-md);
+      width: 48px;
+      height: 48px;
+      border-radius: var(--md-shape-md);
       background: var(--md-primary-container);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 1rem;
     }
-    .nav-logo .material-icons { color: var(--md-on-primary-cont); font-size: 28px; }
-    .nav-item {
-      width: 56px; padding: 0.4rem 0; border-radius: var(--md-shape-full);
-      display: flex; flex-direction: column; align-items: center;
-      gap: 0.2rem; cursor: pointer; text-decoration: none;
-      transition: background 0.2s;
-      color: var(--md-on-surface-var); font-size: 10px;
+
+    .nav-logo .material-icons {
+      color: var(--md-on-primary-cont);
+      font-size: 28px;
     }
-    .nav-item:hover { background: rgba(34,211,238,0.1); text-decoration: none; }
-    .nav-item.active { color: var(--md-primary); }
+
+    .nav-item {
+      width: 56px;
+      padding: 0.4rem 0;
+      border-radius: var(--md-shape-full);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+      color: var(--md-on-surface-var);
+      font-size: 10px;
+    }
+
+    .nav-item:hover {
+      background: rgba(34, 211, 238, 0.1);
+      text-decoration: none;
+    }
+
+    .nav-item.active {
+      color: var(--md-primary);
+    }
+
     .nav-item.active .nav-pill {
-      background: var(--md-primary-container); width: 56px; height: 32px;
+      background: var(--md-primary-container);
+      width: 56px;
+      height: 32px;
       border-radius: var(--md-shape-full);
     }
-    .nav-pill { width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; }
-    .nav-item .material-icons { font-size: 22px; }
+
+    .nav-pill {
+      width: 56px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-item .material-icons {
+      font-size: 22px;
+    }
 
     /* ── Main layout ─────────────────────────────────────────────────── */
-    .layout { margin-left: 80px; }
+    .layout {
+      margin-left: 80px;
+    }
 
     /* ── Hero ────────────────────────────────────────────────────────── */
     .hero {
       background: linear-gradient(135deg, #001a2e 0%, #0b0f1a 50%, #0a1628 100%);
       padding: 4rem 3rem 3rem;
       border-bottom: 1px solid var(--md-outline-var);
-      position: relative; overflow: hidden;
+      position: relative;
+      overflow: hidden;
     }
+
     .hero::before {
       content: '';
-      position: absolute; top: -80px; right: -80px;
-      width: 300px; height: 300px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%);
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.07) 0%, transparent 70%);
     }
+
     .hero::after {
       content: '';
-      position: absolute; bottom: -60px; left: 20%;
-      width: 200px; height: 200px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%);
+      position: absolute;
+      bottom: -60px;
+      left: 20%;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
     }
-    .hero-inner { max-width: 1100px; position: relative; z-index: 1; }
+
+    .hero-inner {
+      max-width: 1100px;
+      position: relative;
+      z-index: 1;
+    }
+
     .hero-eyebrow {
-      display: flex; align-items: center; gap: 0.75rem;
-      margin-bottom: 1.25rem; flex-wrap: wrap;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
     }
+
     .hero-back {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      color: var(--md-primary); font-size: 0.8rem; font-weight: 500;
-      letter-spacing: 0.02em; text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--md-primary);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-decoration: none;
       transition: opacity 0.2s;
     }
-    .hero-back:hover { opacity: 0.75; text-decoration: none; }
-    .hero-back .material-icons { font-size: 16px; }
-    .hero-divider { width: 1px; height: 16px; background: var(--md-outline-var); }
+
+    .hero-back:hover {
+      opacity: 0.75;
+      text-decoration: none;
+    }
+
+    .hero-back .material-icons {
+      font-size: 16px;
+    }
+
+    .hero-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--md-outline-var);
+    }
+
     .hero-category {
-      display: flex; align-items: center; gap: 0.4rem;
-      color: var(--md-on-surface-var); font-size: 0.75rem; font-weight: 500;
-      letter-spacing: 0.08em; text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--md-on-surface-var);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
-    .hero-category .material-icons { font-size: 14px; }
+
+    .hero-category .material-icons {
+      font-size: 14px;
+    }
+
     .hero h1 {
-      font-size: clamp(2rem, 4vw, 3rem); font-weight: 300; color: #fff;
-      letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 0.75rem;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 300;
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
     }
-    .hero h1 span { color: var(--md-primary); font-weight: 400; }
+
+    .hero h1 span {
+      color: var(--md-primary);
+      font-weight: 400;
+    }
+
     .hero-sub {
-      font-size: 1rem; color: var(--md-on-surface-var); margin-bottom: 2rem;
-      max-width: 560px; line-height: 1.6;
+      font-size: 1rem;
+      color: var(--md-on-surface-var);
+      margin-bottom: 2rem;
+      max-width: 560px;
+      line-height: 1.6;
     }
-    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
     .chip {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      background: rgba(34,211,238,0.10); color: var(--md-primary);
-      border: 1px solid rgba(34,211,238,0.22); border-radius: var(--md-shape-full);
-      padding: 0.25rem 0.75rem; font-size: 0.78rem; font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(34, 211, 238, 0.10);
+      color: var(--md-primary);
+      border: 1px solid rgba(34, 211, 238, 0.22);
+      border-radius: var(--md-shape-full);
+      padding: 0.25rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 500;
     }
-    .chip.green  { background: rgba(121,212,127,0.10); color: var(--md-success);  border-color: rgba(121,212,127,0.25); }
-    .chip.amber  { background: rgba(255,183,77,0.10);  color: var(--md-warning);  border-color: rgba(255,183,77,0.25); }
-    .chip.purple { background: rgba(214,190,228,0.10); color: var(--md-tertiary); border-color: rgba(214,190,228,0.25); }
-    .chip .material-icons { font-size: 14px; }
+
+    .chip.green {
+      background: rgba(121, 212, 127, 0.10);
+      color: var(--md-success);
+      border-color: rgba(121, 212, 127, 0.25);
+    }
+
+    .chip.amber {
+      background: rgba(255, 183, 77, 0.10);
+      color: var(--md-warning);
+      border-color: rgba(255, 183, 77, 0.25);
+    }
+
+    .chip.purple {
+      background: rgba(214, 190, 228, 0.10);
+      color: var(--md-tertiary);
+      border-color: rgba(214, 190, 228, 0.25);
+    }
+
+    .chip .material-icons {
+      font-size: 14px;
+    }
 
     /* ── Content area ────────────────────────────────────────────────── */
-    .content { max-width: 1100px; padding: 2.5rem 3rem; }
+    .content {
+      max-width: 1100px;
+      padding: 2.5rem 3rem;
+    }
 
     /* ── Section structure ───────────────────────────────────────────── */
-    .section { margin-bottom: 3.5rem; scroll-margin-top: 1rem; }
-    .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: 1rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
     .section-icon {
-      width: 40px; height: 40px; border-radius: var(--md-shape-sm);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--md-shape-sm);
       background: var(--md-primary-container);
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .section-icon .material-icons { color: var(--md-on-primary-cont); font-size: 20px; }
-    .section-icon.green  { background: var(--md-success-container); }
-    .section-icon.green  .material-icons { color: var(--md-success); }
-    .section-icon.amber  { background: var(--md-warning-container); }
-    .section-icon.amber  .material-icons { color: var(--md-warning); }
-    .section-icon.purple { background: rgba(59,41,72,0.8); }
-    .section-icon.purple .material-icons { color: var(--md-tertiary); }
-    h2 { font-size: 1.25rem; font-weight: 500; color: var(--md-on-surface); letter-spacing: 0.01em; }
+
+    .section-icon .material-icons {
+      color: var(--md-on-primary-cont);
+      font-size: 20px;
+    }
+
+    .section-icon.green {
+      background: var(--md-success-container);
+    }
+
+    .section-icon.green .material-icons {
+      color: var(--md-success);
+    }
+
+    .section-icon.amber {
+      background: var(--md-warning-container);
+    }
+
+    .section-icon.amber .material-icons {
+      color: var(--md-warning);
+    }
+
+    .section-icon.purple {
+      background: rgba(59, 41, 72, 0.8);
+    }
+
+    .btn {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--md-shape-md);
+      font-family: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--md-primary-container);
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--md-on-surface);
+      letter-spacing: 0.01em;
+    }
+
     h3 {
-      font-size: 0.95rem; font-weight: 500; color: var(--md-primary);
-      margin: 1.75rem 0 0.6rem; display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--md-primary);
+      margin: 1.75rem 0 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
-    h3::before { content: ''; display: block; width: 3px; height: 1em; background: var(--md-primary); border-radius: 2px; }
-    p { color: var(--md-on-surface-var); margin-bottom: 0.9rem; font-size: 0.9rem; }
-    ul, ol { margin: 0.5rem 0 0.9rem 1.5rem; color: var(--md-on-surface-var); font-size: 0.9rem; }
-    li { margin-bottom: 0.65rem; }
+
+    h3::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 1em;
+      background: var(--md-primary);
+      border-radius: 2px;
+    }
+
+    p {
+      color: var(--md-on-surface-var);
+      margin-bottom: 0.9rem;
+      font-size: 0.9rem;
+    }
+
+    ul,
+    ol {
+      margin: 0.5rem 0 0.9rem 1.5rem;
+      color: var(--md-on-surface-var);
+      font-size: 0.9rem;
+    }
+
+    li {
+      margin-bottom: 0.65rem;
+    }
 
     /* ── Flow diagram ────────────────────────────────────────────────── */
     .flow-diagram {
-      background: var(--md-surface-1); border: 1px solid var(--md-outline-var);
-      border-radius: var(--md-shape-lg); padding: 2rem 1.5rem;
-      margin: 1.25rem 0 1.75rem; overflow-x: auto;
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 2rem 1.5rem;
+      margin: 1.25rem 0 1.75rem;
+      overflow-x: auto;
     }
-    .flow { display: flex; align-items: stretch; flex-wrap: nowrap; gap: 0; min-width: 600px; }
+
+    .flow {
+      display: flex;
+      align-items: stretch;
+      flex-wrap: nowrap;
+      gap: 0;
+      min-width: 600px;
+    }
+
     .flow-node {
-      flex: 1; background: var(--md-surface-2);
-      border: 1px solid var(--md-outline-var); border-radius: var(--md-shape-md);
-      padding: 1rem 0.75rem; text-align: center;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 0.25rem; transition: border-color 0.2s;
+      flex: 1;
+      background: var(--md-surface-2);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-md);
+      padding: 1rem 0.75rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      transition: border-color 0.2s;
     }
-    .flow-node:hover { border-color: var(--md-primary); }
-    .flow-node .material-icons { font-size: 24px; color: var(--md-primary); margin-bottom: 0.25rem; }
-    .flow-node.green  .material-icons { color: var(--md-success); }
-    .flow-node.amber  .material-icons { color: var(--md-warning); }
-    .flow-node.purple .material-icons { color: var(--md-tertiary); }
-    .flow-node strong { font-size: 0.85rem; color: var(--md-on-surface); font-weight: 500; display: block; }
-    .flow-node small  { font-size: 0.72rem; color: var(--md-outline); display: block; }
-    .flow-node .flow-topic { font-size: 0.65rem; color: var(--md-primary); margin-top: 0.3rem; font-family: "JetBrains Mono", monospace; }
+
+    .flow-node:hover {
+      border-color: var(--md-primary);
+    }
+
+    .flow-node .material-icons {
+      font-size: 24px;
+      color: var(--md-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .flow-node.green .material-icons {
+      color: var(--md-success);
+    }
+
+    .flow-node.amber .material-icons {
+      color: var(--md-warning);
+    }
+
+    .flow-node.purple .material-icons {
+      color: var(--md-tertiary);
+    }
+
+    .flow-node strong {
+      font-size: 0.85rem;
+      color: var(--md-on-surface);
+      font-weight: 500;
+      display: block;
+    }
+
+    .flow-node small {
+      font-size: 0.72rem;
+      color: var(--md-outline);
+      display: block;
+    }
+
+    .flow-node .flow-topic {
+      font-size: 0.65rem;
+      color: var(--md-primary);
+      margin-top: 0.3rem;
+      font-family: "JetBrains Mono", monospace;
+    }
+
     .flow-connector {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 0 0.4rem; min-width: 44px; gap: 0.15rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.4rem;
+      min-width: 44px;
+      gap: 0.15rem;
     }
-    .flow-connector .material-icons { font-size: 18px; color: var(--md-primary); }
-    .flow-connector span { font-size: 0.6rem; color: var(--md-outline); text-align: center; }
+
+    .flow-connector .material-icons {
+      font-size: 18px;
+      color: var(--md-primary);
+    }
+
+    .flow-connector span {
+      font-size: 0.6rem;
+      color: var(--md-outline);
+      text-align: center;
+    }
 
     /* ── Tables ──────────────────────────────────────────────────────── */
-    .table-wrap { border-radius: var(--md-shape-md); overflow: hidden; border: 1px solid var(--md-outline-var); margin: 1rem 0 1.5rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
-    thead tr { background: var(--md-surface-3); }
-    th { padding: 0.75rem 1rem; text-align: left; color: var(--md-on-surface); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 0.7rem 1rem; border-top: 1px solid var(--md-outline-var); color: var(--md-on-surface-var); vertical-align: top; }
-    tbody tr:hover { background: rgba(34,211,238,0.04); }
-    td:first-child { color: var(--md-on-surface); font-weight: 500; font-family: "JetBrains Mono", monospace; font-size: 0.82rem; }
+    .table-wrap {
+      border-radius: var(--md-shape-md);
+      overflow: hidden;
+      border: 1px solid var(--md-outline-var);
+      margin: 1rem 0 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    thead tr {
+      background: var(--md-surface-3);
+    }
+
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      color: var(--md-on-surface);
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.7rem 1rem;
+      border-top: 1px solid var(--md-outline-var);
+      color: var(--md-on-surface-var);
+      vertical-align: top;
+    }
+
+    tbody tr:hover {
+      background: rgba(34, 211, 238, 0.04);
+    }
+
+    td:first-child {
+      color: var(--md-on-surface);
+      font-weight: 500;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+    }
 
     /* ── Formula blocks ──────────────────────────────────────────────── */
     .formula-block {
       background: #0a1520;
-      border: 1px solid rgba(34,211,238,0.2);
-      border-radius: var(--md-shape-md); overflow: hidden;
+      border: 1px solid rgba(34, 211, 238, 0.2);
+      border-radius: var(--md-shape-md);
+      overflow: hidden;
       margin: 0.8rem 0 1rem;
     }
+
     .formula-header {
-      background: rgba(14,116,144,0.25); padding: 0.45rem 1rem;
-      border-bottom: 1px solid rgba(34,211,238,0.15);
-      display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(14, 116, 144, 0.25);
+      padding: 0.45rem 1rem;
+      border-bottom: 1px solid rgba(34, 211, 238, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    .formula-header .material-icons { font-size: 14px; color: var(--md-primary); }
-    .formula-header span { font-size: 0.75rem; color: var(--md-primary); font-family: "JetBrains Mono", monospace; font-weight: 500; }
+
+    .formula-header .material-icons {
+      font-size: 14px;
+      color: var(--md-primary);
+    }
+
+    .formula-header span {
+      font-size: 0.75rem;
+      color: var(--md-primary);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 500;
+    }
+
     .formula-block pre {
-      padding: 1.25rem 1.5rem; text-align: center;
-      font-size: 1rem; letter-spacing: 0.02em;
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
     }
-    .formula-block code { color: #e2e8f0; font-family: "JetBrains Mono", monospace; font-size: 1rem; }
+
+    .formula-block code {
+      color: #e2e8f0;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1rem;
+    }
 
     /* ── Code blocks ─────────────────────────────────────────────────── */
     .code-block {
-      background: #0d1117; border: 1px solid var(--md-outline-var);
-      border-radius: var(--md-shape-md); overflow: hidden; margin: 0.8rem 0 1.2rem;
+      background: #0d1117;
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-md);
+      overflow: hidden;
+      margin: 0.8rem 0 1.2rem;
     }
+
     .code-header {
-      background: var(--md-surface-3); padding: 0.5rem 1rem;
-      display: flex; align-items: center; justify-content: space-between;
+      background: var(--md-surface-3);
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       border-bottom: 1px solid var(--md-outline-var);
     }
-    .code-header span { font-size: 0.75rem; color: var(--md-outline); font-family: "JetBrains Mono", monospace; }
-    .code-header .material-icons { font-size: 16px; color: var(--md-outline); cursor: pointer; }
-    .code-header .material-icons:hover { color: var(--md-primary); }
-    pre { padding: 1rem 1.25rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; background: transparent; border: none; border-radius: 0; margin: 0; }
-    code { font-family: "JetBrains Mono", monospace; color: #c9d1d9; }
-    p code, li code {
-      background: var(--md-surface-3); padding: 0.1em 0.45em;
-      border-radius: var(--md-shape-xs); font-size: 0.82em;
-      color: var(--md-primary); font-family: "JetBrains Mono", monospace;
+
+    .code-header span {
+      font-size: 0.75rem;
+      color: var(--md-outline);
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .code-header .material-icons {
+      font-size: 16px;
+      color: var(--md-outline);
+      cursor: pointer;
+    }
+
+    .code-header .material-icons:hover {
+      color: var(--md-primary);
+    }
+
+    pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      margin: 0;
+    }
+
+    code {
+      font-family: "JetBrains Mono", monospace;
+      color: #c9d1d9;
+    }
+
+    p code,
+    li code {
+      background: var(--md-surface-3);
+      padding: 0.1em 0.45em;
+      border-radius: var(--md-shape-xs);
+      font-size: 0.82em;
+      color: var(--md-primary);
+      font-family: "JetBrains Mono", monospace;
       border: 1px solid var(--md-outline-var);
     }
 
     /* ── Alert banners ───────────────────────────────────────────────── */
     .alert {
-      display: flex; gap: 0.75rem; align-items: flex-start;
-      border-radius: var(--md-shape-md); padding: 0.9rem 1rem;
-      margin: 1rem 0 1.25rem; font-size: 0.875rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      border-radius: var(--md-shape-md);
+      padding: 0.9rem 1rem;
+      margin: 1rem 0 1.25rem;
+      font-size: 0.875rem;
     }
-    .alert .material-icons { font-size: 20px; flex-shrink: 0; margin-top: 0.1rem; }
-    .alert-body { color: var(--md-on-surface-var); }
-    .alert-body strong { color: var(--md-on-surface); }
-    .alert.info    { background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.2); }
-    .alert.info    .material-icons { color: var(--md-primary); }
-    .alert.warning { background: rgba(255,183,77,0.08);  border: 1px solid rgba(255,183,77,0.2); }
-    .alert.warning .material-icons { color: var(--md-warning); }
+
+    .alert .material-icons {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .alert-body {
+      color: var(--md-on-surface-var);
+    }
+
+    .alert-body strong {
+      color: var(--md-on-surface);
+    }
+
+    .alert.info {
+      background: rgba(34, 211, 238, 0.08);
+      border: 1px solid rgba(34, 211, 238, 0.2);
+    }
+
+    .alert.info .material-icons {
+      color: var(--md-primary);
+    }
+
+    .alert.warning {
+      background: rgba(255, 183, 77, 0.08);
+      border: 1px solid rgba(255, 183, 77, 0.2);
+    }
+
+    .alert.warning .material-icons {
+      color: var(--md-warning);
+    }
 
     /* ── Numbered steps ──────────────────────────────────────────────── */
-    .steps { display: flex; flex-direction: column; gap: 0; margin: 1rem 0; }
-    .step  { display: flex; gap: 1rem; padding: 1rem 0; position: relative; }
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 1rem 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 0;
+      position: relative;
+    }
+
     .step:not(:last-child)::after {
-      content: ''; position: absolute; left: 19px; top: 48px; bottom: 0;
-      width: 2px; background: var(--md-outline-var);
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 48px;
+      bottom: 0;
+      width: 2px;
+      background: var(--md-outline-var);
     }
+
     .step-num {
-      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
       background: var(--md-primary-container);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.9rem; color: var(--md-on-primary-cont);
-      position: relative; z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--md-on-primary-cont);
+      position: relative;
+      z-index: 1;
     }
-    .step-body h3 { margin-top: 0.5rem; }
-    .step-body p  { margin-bottom: 0.5rem; }
+
+    .step-body h3 {
+      margin-top: 0.5rem;
+    }
+
+    .step-body p {
+      margin-bottom: 0.5rem;
+    }
 
     /* ── Reference grid ──────────────────────────────────────────────── */
-    .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+    .ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
     .ref-card {
-      background: var(--md-surface-1); border: 1px solid var(--md-outline-var);
-      border-radius: var(--md-shape-lg); padding: 1rem 1.1rem;
-      display: flex; align-items: flex-start; gap: 0.85rem;
-      text-decoration: none; color: inherit;
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1rem 1.1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      text-decoration: none;
+      color: inherit;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .ref-card:hover { border-color: var(--md-primary); box-shadow: var(--md-elev2); text-decoration: none; }
-    .ref-icon {
-      width: 38px; height: 38px; border-radius: var(--md-shape-sm); flex-shrink: 0;
-      background: var(--md-primary-container);
-      display: flex; align-items: center; justify-content: center;
+
+    .ref-card:hover {
+      border-color: var(--md-primary);
+      box-shadow: var(--md-elev2);
+      text-decoration: none;
     }
-    .ref-icon .material-icons { font-size: 20px; color: var(--md-on-primary-cont); }
-    .ref-icon.green  { background: var(--md-success-container); }
-    .ref-icon.green  .material-icons { color: var(--md-success); }
-    .ref-icon.amber  { background: var(--md-warning-container); }
-    .ref-icon.amber  .material-icons { color: var(--md-warning); }
-    .ref-icon.purple { background: rgba(59,41,72,0.8); }
-    .ref-icon.purple .material-icons { color: var(--md-tertiary); }
-    .ref-title { font-size: 0.9rem; font-weight: 500; color: var(--md-on-surface); display: block; margin-bottom: 0.2rem; }
-    .ref-desc  { font-size: 0.78rem; color: var(--md-outline); line-height: 1.4; display: block; }
-    .ref-year  { font-size: 0.7rem; color: var(--md-primary); font-family: "JetBrains Mono", monospace; display: block; margin-top: 0.35rem; letter-spacing: 0.02em; }
+
+    .ref-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--md-shape-sm);
+      flex-shrink: 0;
+      background: var(--md-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ref-icon .material-icons {
+      font-size: 20px;
+      color: var(--md-on-primary-cont);
+    }
+
+    .ref-icon.green {
+      background: var(--md-success-container);
+    }
+
+    .ref-icon.green .material-icons {
+      color: var(--md-success);
+    }
+
+    .ref-icon.amber {
+      background: var(--md-warning-container);
+    }
+
+    .ref-icon.amber .material-icons {
+      color: var(--md-warning);
+    }
+
+    .ref-icon.purple {
+      background: rgba(59, 41, 72, 0.8);
+    }
+
+    .ref-icon.purple .material-icons {
+      color: var(--md-tertiary);
+    }
+
+    .ref-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--md-on-surface);
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    .ref-desc {
+      font-size: 0.78rem;
+      color: var(--md-outline);
+      line-height: 1.4;
+      display: block;
+    }
+
+    .ref-year {
+      font-size: 0.7rem;
+      color: var(--md-primary);
+      font-family: "JetBrains Mono", monospace;
+      display: block;
+      margin-top: 0.35rem;
+      letter-spacing: 0.02em;
+    }
 
     /* ── Footer ──────────────────────────────────────────────────────── */
     footer {
-      border-top: 1px solid var(--md-outline-var); margin-left: 80px;
-      padding: 1.5rem 3rem; display: flex; align-items: center; gap: 0.5rem;
-      color: var(--md-outline); font-size: 0.8rem;
+      border-top: 1px solid var(--md-outline-var);
+      margin-left: 80px;
+      padding: 1.5rem 3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--md-outline);
+      font-size: 0.8rem;
     }
-    footer .material-icons { font-size: 16px; }
+
+    footer .material-icons {
+      font-size: 16px;
+    }
 
     /* ── Responsive ──────────────────────────────────────────────────── */
     @media (max-width: 700px) {
-      .nav { display: none; }
-      .layout, footer { margin-left: 0; }
-      .hero, .content { padding: 2rem 1.25rem; }
-      .flow { flex-wrap: wrap; min-width: unset; }
+      .nav {
+        display: none;
+      }
+
+      .layout,
+      footer {
+        margin-left: 0;
+      }
+
+      .hero,
+      .content {
+        padding: 2rem 1.25rem;
+      }
+
+      .flow {
+        flex-wrap: wrap;
+        min-width: unset;
+      }
     }
   </style>
 </head>
+
 <body>
 
-<nav class="nav">
-  <div class="nav-logo">
-    <span class="material-icons">show_chart</span>
-  </div>
-  <a class="nav-item" href="#problem">
-    <div class="nav-pill"><span class="material-icons">help_outline</span></div>
-    Problem
-  </a>
-  <a class="nav-item" href="#model">
-    <div class="nav-pill"><span class="material-icons">functions</span></div>
-    Model
-  </a>
-  <a class="nav-item" href="#how-it-works">
-    <div class="nav-pill"><span class="material-icons">account_tree</span></div>
-    How
-  </a>
-  <a class="nav-item" href="#limitations">
-    <div class="nav-pill"><span class="material-icons">warning_amber</span></div>
-    Limits
-  </a>
-  <a class="nav-item" href="#references">
-    <div class="nav-pill"><span class="material-icons">menu_book</span></div>
-    Refs
-  </a>
-</nav>
+  <nav class="nav">
+    <a class="nav-logo" href="/" style="text-decoration:none">
+      <span class="material-icons">show_chart</span>
+    </a>
+    <a class="nav-item" href="/">
+      <div class="nav-pill"><span class="material-icons">analytics</span></div>
+      Tool
+    </a>
+    <a class="nav-item" href="/calibration">
+      <div class="nav-pill"><span class="material-icons">science</span></div>
+      Calibrate
+    </a>
+    <a class="nav-item active" href="/about">
+      <div class="nav-pill"><span class="material-icons">info</span></div>
+      About
+    </a>
+    <a class="nav-item" href="#problem">
+      <div class="nav-pill"><span class="material-icons">help_outline</span></div>
+      Problem
+    </a>
+    <a class="nav-item" href="#model">
+      <div class="nav-pill"><span class="material-icons">functions</span></div>
+      Model
+    </a>
+    <a class="nav-item" href="#how-it-works">
+      <div class="nav-pill"><span class="material-icons">account_tree</span></div>
+      How
+    </a>
+    <a class="nav-item" href="#limitations">
+      <div class="nav-pill"><span class="material-icons">warning_amber</span></div>
+      Limits
+    </a>
+    <a class="nav-item" href="#engineering-notes">
+      <div class="nav-pill"><span class="material-icons">engineering</span></div>
+      Notes
+    </a>
+    <a class="nav-item" href="#references">
+      <div class="nav-pill"><span class="material-icons">menu_book</span></div>
+      Refs
+    </a>
+  </nav>
 
-<div class="layout">
-  <header class="hero">
-    <div class="hero-inner">
-      <div class="hero-eyebrow">
-        <a href="../index.html" class="hero-back">
-          <span class="material-icons">arrow_back</span>
-          FrontierView
-        </a>
-        <div class="hero-divider"></div>
-        <div class="hero-category">
-          <span class="material-icons">science</span>
-          Model Documentation
-        </div>
-      </div>
-      <h1>Pre-Trade Market <span>Impact</span> Analysis</h1>
-      <p class="hero-sub">The model, assumptions, and trade-offs behind the Almgren-Chriss 2005 execution cost framework implemented in FrontierView.</p>
-      <div class="chip-row">
-        <span class="chip"><span class="material-icons">code</span>Python</span>
-        <span class="chip"><span class="material-icons">api</span>FastAPI</span>
-        <span class="chip amber"><span class="material-icons">auto_graph</span>Almgren-Chriss 2005</span>
-        <span class="chip purple"><span class="material-icons">analytics</span>Pre-Trade TCA</span>
-      </div>
-    </div>
-  </header>
-
-  <main class="content">
-
-    <!-- ── 1. What problem does this solve ────────────────────────── -->
-    <section class="section" id="problem">
-      <div class="section-header">
-        <div class="section-icon">
-          <span class="material-icons">help_outline</span>
-        </div>
-        <h2>What problem does this solve?</h2>
-      </div>
-
-      <p>Every time an institutional investor wants to buy or sell a large position, they face a fundamental dilemma: trade quickly and pay more, or trade slowly and bear more risk. This is not a trivial problem. A fund managing $5 billion that routinely executes poorly can lose tens of millions of dollars a year to execution costs that never appear on a P&amp;L line — they show up as slippage, as underperformance relative to benchmark, as the gap between the price you decided to trade at and the price you actually got.</p>
-
-      <p>FrontierView makes this trade-off visible. Given an order — a stock, a size, and a time horizon — it computes the expected cost and risk of execution across a range of strategies and shows you the <strong>efficient frontier</strong>: the set of strategies from which no improvement is possible without accepting more risk or paying more cost. This is the core question of pre-trade transaction cost analysis (TCA), answered every day by execution desks at hedge funds, asset managers, and investment banks using models exactly like this one.</p>
-
-      <div class="alert info">
-        <span class="material-icons">info</span>
-        <div class="alert-body"><strong>Implementation shortfall.</strong> The gap between the price at which a trading decision is made and the average price actually achieved is called implementation shortfall. For large institutional orders it routinely exceeds commissions, fees, and bid-ask spreads combined — yet it rarely appears as a line item in performance attribution.</div>
-      </div>
-
-      <p>When a large investor buys shares, they move the market against themselves. Buying pressure pushes prices up; the more aggressively you buy, the more you pay above the arrival price. This is <strong>market impact</strong> — and unlike commissions or spreads, it scales non-linearly with order size and execution speed.</p>
-
-      <p><strong>Temporary impact</strong> is the instantaneous price dislocation caused by your order hitting the book. It reflects the liquidity consumed in the moment. It decays after you stop trading. If you trade faster, you consume more liquidity per unit time and pay a higher temporary impact cost. <strong>Permanent impact</strong> is the information content of your order. The market infers that you have a view and reprices accordingly. This does not recover. Trading fast reduces exposure to permanent impact but increases temporary impact. Trading slowly reduces temporary impact but gives the market more time to move against you. The optimal schedule is different for every investor depending on how much uncertainty they can accept.</p>
-    </section>
-
-    <!-- ── 2. The model ────────────────────────────────────────────── -->
-    <section class="section" id="model">
-      <div class="section-header">
-        <div class="section-icon">
-          <span class="material-icons">functions</span>
-        </div>
-        <h2>The model</h2>
-      </div>
-
-      <p>FrontierView implements the market impact model from Almgren, Thum, Hauptmann, and Li (2005), an empirical extension of the foundational Almgren-Chriss (2001) framework fitted to US equity trade data. It is the reference model taught in quantitative finance courses, cited in academic literature, and used as a baseline by TCA vendors.</p>
-
-      <div class="alert warning">
-        <span class="material-icons">warning</span>
-        <div class="alert-body"><strong>This is not the 2001 paper.</strong> Almgren-Chriss (2001) assumes <em>linear</em> temporary impact. The 2005 paper establishes empirically that temporary impact follows a <strong>power law with exponent ≈ 0.6</strong> — a meaningful difference in how costs scale with participation rate. FrontierView implements the 2005 version throughout.</div>
-      </div>
-
-      <h3>Functional forms</h3>
-
-      <div class="formula-block">
-        <div class="formula-header">
-          <span class="material-icons">trending_up</span>
-          <span>Temporary impact — h(v)</span>
-        </div>
-        <pre><code>h(v)  =  η · σ · ( v / (6.5 · V) )^0.6</code></pre>
-      </div>
-
-      <div class="formula-block">
-        <div class="formula-header">
-          <span class="material-icons">swap_horiz</span>
-          <span>Spread cost — s</span>
-        </div>
-        <pre><code>s  =  ε · sgn(v)</code></pre>
-      </div>
-
-      <div class="formula-block">
-        <div class="formula-header">
-          <span class="material-icons">north_east</span>
-          <span>Permanent impact — g(v)</span>
-        </div>
-        <pre><code>g(v)  =  γ · σ · ( v / V )</code></pre>
-      </div>
-
-      <p>All three expressions return dimensionless fractional price changes. Multiply by 10,000 to convert to basis points.</p>
-
-      <h3>Variable definitions</h3>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Symbol</th><th>Description</th><th>Notes</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>v</td>
-              <td>Trading rate</td>
-              <td>Shares per hour — a rate, not a cumulative quantity</td>
-            </tr>
-            <tr>
-              <td>V</td>
-              <td>Average daily volume (ADV)</td>
-              <td>Shares per day; per-symbol market default</td>
-            </tr>
-            <tr>
-              <td>σ</td>
-              <td>Daily return volatility</td>
-              <td>Dimensionless (e.g. 0.0155 = 1.55%); per-symbol default</td>
-            </tr>
-            <tr>
-              <td>η</td>
-              <td>Temporary impact coefficient</td>
-              <td>0.142 — Almgren et al. 2005, Table 3</td>
-            </tr>
-            <tr>
-              <td>γ</td>
-              <td>Permanent impact coefficient</td>
-              <td>0.314 — Almgren et al. 2005, Table 3</td>
-            </tr>
-            <tr>
-              <td>ε</td>
-              <td>Half bid-ask spread</td>
-              <td>Per-symbol default; paid once per share regardless of speed</td>
-            </tr>
-            <tr>
-              <td>6.5</td>
-              <td>Trading hours per day</td>
-              <td>US equities convention (9:30 am – 4:00 pm ET)</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>Execution schedules</h3>
-
-      <p>Rather than solving a full numerical optimisation — which requires assumptions that cannot be validated without real order flow data — FrontierView compares four canonical execution strategies. Each is evaluated for expected cost and variance of execution shortfall.</p>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Schedule</th><th>Description</th><th>Character</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>TWAP</td>
-              <td>Equal participation rate throughout the horizon</td>
-              <td>Neutral baseline; no market view implied</td>
-            </tr>
-            <tr>
-              <td>Front-loaded</td>
-              <td>Exponentially decreasing participation rate</td>
-              <td>Aggressive; accepts higher temporary cost to reduce market exposure time</td>
-            </tr>
-            <tr>
-              <td>Back-loaded</td>
-              <td>Exponentially increasing participation rate</td>
-              <td>Passive; accepts higher uncertainty to minimise initial impact</td>
-            </tr>
-            <tr>
-              <td>AC Linear</td>
-              <td>Almgren-Chriss closed-form optimal under the linearised impact assumption</td>
-              <td>Theoretically motivated; typically front-loaded</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>The efficient frontier</h3>
-
-      <p>For each schedule, plotting expected cost (bps) against variance of cost (bps²) produces a point in cost–risk space. Together, these points trace an approximation of the <strong>efficient frontier</strong> — the boundary below which no strategy can achieve lower cost without accepting higher variance, or lower variance without accepting higher cost.</p>
-
-      <p>The frontier is indexed by a risk aversion parameter <strong>λ</strong>, which represents how much additional expected cost the trader is willing to pay to reduce variance by one unit. A λ of zero means the trader is indifferent to risk (minimise cost only); a high λ means the trader strongly prefers certainty over cheapness. This directly answers the question: <em>given how risk-averse I am, what is the best way to execute this order?</em></p>
-    </section>
-
-    <!-- ── 3. How it works ─────────────────────────────────────────── -->
-    <section class="section" id="how-it-works">
-      <div class="section-header">
-        <div class="section-icon amber">
-          <span class="material-icons">account_tree</span>
-        </div>
-        <h2>How it works</h2>
-      </div>
-
-      <div class="flow-diagram">
-        <div class="flow">
-          <div class="flow-node green">
-            <span class="material-icons">input</span>
-            <strong>User Input</strong>
-            <small>symbol · size</small>
-            <small>direction · horizon</small>
+  <div class="layout">
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="hero-eyebrow">
+          <a href="/" class="hero-back">
+            <span class="material-icons">arrow_back</span>
+            FrontierView
+          </a>
+          <div class="hero-divider"></div>
+          <div class="hero-category">
+            <span class="material-icons">science</span>
+            Model Documentation
           </div>
-          <div class="flow-connector">
-            <span class="material-icons">arrow_forward</span>
-            <span>HTTP</span>
+        </div>
+        <h1>Pre-Trade Market <span>Impact</span> Analysis</h1>
+        <p class="hero-sub">The model, assumptions, and trade-offs behind the Almgren-Chriss 2005 execution cost
+          framework implemented in FrontierView.</p>
+        <div class="chip-row">
+          <span class="chip"><span class="material-icons">code</span>Python</span>
+          <span class="chip"><span class="material-icons">api</span>FastAPI</span>
+          <span class="chip amber"><span class="material-icons">auto_graph</span>Almgren-Chriss 2005</span>
+          <span class="chip purple"><span class="material-icons">analytics</span>Pre-Trade TCA</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ── 1. What problem does this solve ────────────────────────── -->
+      <section class="section" id="problem">
+        <div class="section-header">
+          <div class="section-icon">
+            <span class="material-icons">help_outline</span>
           </div>
-          <div class="flow-node amber">
-            <span class="material-icons">api</span>
-            <strong>FastAPI</strong>
-            <small>market params</small>
-            <small>ADV · vol · spread</small>
-          </div>
-          <div class="flow-connector">
-            <span class="material-icons">arrow_forward</span>
-            <span>compute</span>
-          </div>
-          <div class="flow-node">
+          <h2>What problem does this solve?</h2>
+        </div>
+
+        <p>Every time an institutional investor wants to buy or sell a large position, they face a fundamental dilemma:
+          trade quickly and pay more, or trade slowly and bear more risk. This is not a trivial problem. A fund managing
+          $5 billion that routinely executes poorly can lose tens of millions of dollars a year to execution costs that
+          never appear on a P&amp;L line — they show up as slippage, as underperformance relative to benchmark, as the
+          gap between the price you decided to trade at and the price you actually got.</p>
+
+        <p>FrontierView makes this trade-off visible. Given an order — a stock, a size, and a time horizon — it computes
+          the expected cost and risk of execution across a range of strategies and shows you the <strong>efficient
+            frontier</strong>: the set of strategies from which no improvement is possible without accepting more risk
+          or paying more cost. This is the core question of pre-trade transaction cost analysis (TCA), answered every
+          day by execution desks at hedge funds, asset managers, and investment banks using models exactly like this
+          one.</p>
+
+        <div class="alert info">
+          <span class="material-icons">info</span>
+          <div class="alert-body"><strong>Implementation shortfall.</strong> The gap between the price at which a
+            trading decision is made and the average price actually achieved is called implementation shortfall. For
+            large institutional orders it routinely exceeds commissions, fees, and bid-ask spreads combined — yet it
+            rarely appears as a line item in performance attribution.</div>
+        </div>
+
+        <p>When a large investor buys shares, they move the market against themselves. Buying pressure pushes prices up;
+          the more aggressively you buy, the more you pay above the arrival price. This is <strong>market
+            impact</strong> — and unlike commissions or spreads, it scales non-linearly with order size and execution
+          speed.</p>
+
+        <p><strong>Temporary impact</strong> is the instantaneous price dislocation caused by your order hitting the
+          book. It reflects the liquidity consumed in the moment. It decays after you stop trading. If you trade faster,
+          you consume more liquidity per unit time and pay a higher temporary impact cost. <strong>Permanent
+            impact</strong> is the information content of your order. The market infers that you have a view and
+          reprices accordingly. This does not recover. Trading fast reduces exposure to permanent impact but increases
+          temporary impact. Trading slowly reduces temporary impact but gives the market more time to move against you.
+          The optimal schedule is different for every investor depending on how much uncertainty they can accept.</p>
+      </section>
+
+      <!-- ── 2. The model ────────────────────────────────────────────── -->
+      <section class="section" id="model">
+        <div class="section-header">
+          <div class="section-icon">
             <span class="material-icons">functions</span>
-            <strong>AC 2005 Model</strong>
-            <small>4 schedules</small>
-            <span class="flow-topic">h(v) · g(v) · s</span>
           </div>
-          <div class="flow-connector">
-            <span class="material-icons">arrow_forward</span>
-            <span>JSON</span>
-          </div>
-          <div class="flow-node purple">
-            <span class="material-icons">bar_chart</span>
-            <strong>Visualisations</strong>
-            <small>frontier · schedule</small>
-            <small>decomposition</small>
+          <h2>The model</h2>
+        </div>
+
+        <p>FrontierView implements the market impact model from Almgren, Thum, Hauptmann, and Li (2005), an empirical
+          extension of the foundational Almgren-Chriss (2001) framework fitted to US equity trade data. It is the
+          reference model taught in quantitative finance courses, cited in academic literature, and used as a baseline
+          by TCA vendors.</p>
+
+        <div class="alert warning">
+          <span class="material-icons">warning</span>
+          <div class="alert-body"><strong>This is not the 2001 paper.</strong> Almgren-Chriss (2001) assumes
+            <em>linear</em> temporary impact. The 2005 paper establishes empirically that temporary impact follows a
+            <strong>power law with exponent ≈ 0.6</strong> — a meaningful difference in how costs scale with
+            participation rate. FrontierView implements the 2005 version throughout.
           </div>
         </div>
-      </div>
 
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h3>User inputs an order specification</h3>
-            <p>The user provides a stock symbol, order size in shares, direction (buy or sell), and the execution time horizon in hours. These four values fully define the trade-off space to be explored — the model has no free parameters at runtime beyond what the user supplies.</p>
+        <h3>Functional forms</h3>
+
+        <div class="formula-block">
+          <div class="formula-header">
+            <span class="material-icons">trending_up</span>
+            <span>Temporary impact — h(v)</span>
+          </div>
+          <pre><code>h(v)  =  η · σ · ( v / (6.5 · V) )^0.6</code></pre>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-header">
+            <span class="material-icons">swap_horiz</span>
+            <span>Spread cost — s</span>
+          </div>
+          <pre><code>s  =  ε · sgn(v)</code></pre>
+        </div>
+
+        <div class="formula-block">
+          <div class="formula-header">
+            <span class="material-icons">north_east</span>
+            <span>Permanent impact — g(v)</span>
+          </div>
+          <pre><code>g(v)  =  γ · σ · ( v / V )</code></pre>
+        </div>
+
+        <p>All three expressions return dimensionless fractional price changes. Multiply by 10,000 to convert to basis
+          points.</p>
+
+        <h3>Variable definitions</h3>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Description</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>v</td>
+                <td>Trading rate</td>
+                <td>Shares per hour — a rate, not a cumulative quantity</td>
+              </tr>
+              <tr>
+                <td>V</td>
+                <td>Average daily volume (ADV)</td>
+                <td>Shares per day; per-symbol market default</td>
+              </tr>
+              <tr>
+                <td>σ</td>
+                <td>Daily return volatility</td>
+                <td>Dimensionless (e.g. 0.0155 = 1.55%); per-symbol default</td>
+              </tr>
+              <tr>
+                <td>η</td>
+                <td>Temporary impact coefficient</td>
+                <td>0.142 — Almgren et al. 2005, Table 3</td>
+              </tr>
+              <tr>
+                <td>γ</td>
+                <td>Permanent impact coefficient</td>
+                <td>0.314 — Almgren et al. 2005, Table 3</td>
+              </tr>
+              <tr>
+                <td>ε</td>
+                <td>Half bid-ask spread</td>
+                <td>Per-symbol default; paid once per share regardless of speed</td>
+              </tr>
+              <tr>
+                <td>6.5</td>
+                <td>Trading hours per day</td>
+                <td>US equities convention (9:30 am – 4:00 pm ET)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Execution schedules</h3>
+
+        <p>Rather than solving a full numerical optimisation — which requires assumptions that cannot be validated
+          without real order flow data — FrontierView compares four canonical execution strategies. Each is evaluated
+          for expected cost and variance of execution shortfall.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Schedule</th>
+                <th>Description</th>
+                <th>Character</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TWAP</td>
+                <td>Equal participation rate throughout the horizon</td>
+                <td>Neutral baseline; no market view implied</td>
+              </tr>
+              <tr>
+                <td>Front-loaded</td>
+                <td>Exponentially decreasing participation rate</td>
+                <td>Aggressive; accepts higher temporary cost to reduce market exposure time</td>
+              </tr>
+              <tr>
+                <td>Back-loaded</td>
+                <td>Exponentially increasing participation rate</td>
+                <td>Passive; accepts higher uncertainty to minimise initial impact</td>
+              </tr>
+              <tr>
+                <td>AC Linear</td>
+                <td>Almgren-Chriss closed-form optimal under the linearised impact assumption</td>
+                <td>Theoretically motivated; typically front-loaded</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>The efficient frontier</h3>
+
+        <p>For each schedule, plotting expected cost (bps) against variance of cost (bps²) produces a point in cost–risk
+          space. Together, these points trace an approximation of the <strong>efficient frontier</strong> — the boundary
+          below which no strategy can achieve lower cost without accepting higher variance, or lower variance without
+          accepting higher cost.</p>
+
+        <p>The frontier is indexed by a risk aversion parameter <strong>λ</strong>, which represents how much additional
+          expected cost the trader is willing to pay to reduce variance by one unit. A λ of zero means the trader is
+          indifferent to risk (minimise cost only); a high λ means the trader strongly prefers certainty over cheapness.
+          This directly answers the question: <em>given how risk-averse I am, what is the best way to execute this
+            order?</em></p>
+      </section>
+
+      <!-- ── 3. How it works ─────────────────────────────────────────── -->
+      <section class="section" id="how-it-works">
+        <div class="section-header">
+          <div class="section-icon amber">
+            <span class="material-icons">account_tree</span>
+          </div>
+          <h2>How it works</h2>
+        </div>
+
+        <div class="flow-diagram">
+          <div class="flow">
+            <div class="flow-node green">
+              <span class="material-icons">input</span>
+              <strong>User Input</strong>
+              <small>symbol · size</small>
+              <small>direction · horizon</small>
+            </div>
+            <div class="flow-connector">
+              <span class="material-icons">arrow_forward</span>
+              <span>HTTP</span>
+            </div>
+            <div class="flow-node amber">
+              <span class="material-icons">api</span>
+              <strong>FastAPI</strong>
+              <small>market params</small>
+              <small>ADV · vol · spread</small>
+            </div>
+            <div class="flow-connector">
+              <span class="material-icons">arrow_forward</span>
+              <span>compute</span>
+            </div>
+            <div class="flow-node">
+              <span class="material-icons">functions</span>
+              <strong>AC 2005 Model</strong>
+              <small>4 schedules</small>
+              <span class="flow-topic">h(v) · g(v) · s</span>
+            </div>
+            <div class="flow-connector">
+              <span class="material-icons">arrow_forward</span>
+              <span>JSON</span>
+            </div>
+            <div class="flow-node purple">
+              <span class="material-icons">bar_chart</span>
+              <strong>Visualisations</strong>
+              <small>frontier · schedule</small>
+              <small>decomposition</small>
+            </div>
           </div>
         </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <h3>The API resolves market parameters and computes impact</h3>
-            <p>The FastAPI backend (Python) looks up per-symbol market parameters — average daily volume, daily return volatility, and half bid-ask spread. It computes temporary impact, permanent impact, and spread cost for each of the four canonical execution schedules using the Almgren 2005 functional forms, then returns the frontier, schedule time series, and impact decomposition as a JSON response.</p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>User inputs an order specification</h3>
+              <p>The user provides a stock symbol, order size in shares, direction (buy or sell), and the execution time
+                horizon in hours. These four values fully define the trade-off space to be explored — the model has no
+                free parameters at runtime beyond what the user supplies.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>The API resolves market parameters and computes impact</h3>
+              <p>The FastAPI backend (Python) looks up per-symbol market parameters — average daily volume, daily return
+                volatility, and half bid-ask spread. It computes temporary impact, permanent impact, and spread cost for
+                each of the four canonical execution schedules using the Almgren 2005 functional forms, then returns the
+                frontier, schedule time series, and impact decomposition as a JSON response.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Three visualisations are rendered</h3>
+              <p>The client renders three linked charts: the <strong>efficient frontier</strong> scatter plot (expected
+                cost vs. execution variance for each schedule, with a λ slider that highlights the risk-aversion-optimal
+                choice); the <strong>execution schedule</strong> chart (participation rate over time bins, showing how
+                aggressively the order is worked throughout the horizon); and the <strong>impact decomposition</strong>
+                bar chart (total cost broken into spread, temporary impact, and permanent impact components for direct
+                comparison).</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h3>Model parameters are displayed explicitly</h3>
+              <p>The interface surfaces all driving assumptions — symbol defaults for σ, ADV, and ε; the literature
+                constants η and γ; and the derived participation rate for each schedule. This is intentional: the
+                purpose of FrontierView is not to produce opaque numbers, but to show exactly how inputs map to outputs
+                and which assumptions are load-bearing.</p>
+            </div>
           </div>
         </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <h3>Three visualisations are rendered</h3>
-            <p>The client renders three linked charts: the <strong>efficient frontier</strong> scatter plot (expected cost vs. execution variance for each schedule, with a λ slider that highlights the risk-aversion-optimal choice); the <strong>execution schedule</strong> chart (participation rate over time bins, showing how aggressively the order is worked throughout the horizon); and the <strong>impact decomposition</strong> bar chart (total cost broken into spread, temporary impact, and permanent impact components for direct comparison).</p>
+      </section>
+
+      <!-- ── 4. What this demonstrates ────────────────────────────── -->
+      <section class="section" id="demonstrates">
+        <div class="section-header">
+          <div class="section-icon green">
+            <span class="material-icons">verified</span>
           </div>
+          <h2>What this demonstrates</h2>
         </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body">
-            <h3>Model parameters are displayed explicitly</h3>
-            <p>The interface surfaces all driving assumptions — symbol defaults for σ, ADV, and ε; the literature constants η and γ; and the derived participation rate for each schedule. This is intentional: the purpose of FrontierView is not to produce opaque numbers, but to show exactly how inputs map to outputs and which assumptions are load-bearing.</p>
+
+        <p>FrontierView is a portfolio project. Its purpose is to demonstrate:</p>
+        <ul>
+          <li>Fluency with quantitative execution models at the level expected of a buy-side technology role.</li>
+          <li>Understanding of the distinction between temporary and permanent impact, and why it matters for schedule
+            design.</li>
+          <li>Ability to implement a non-trivial Python model cleanly, expose it via an API, and connect it to an
+            interactive visualisation.</li>
+          <li>Intellectual honesty about model limitations — which, in a real TCA context, is exactly what separates
+            credible analysis from dangerous overconfidence.</li>
+          <li>Verification of model correctness via property-based testing of mathematical invariants
+            (schedule-invariance of permanent cost, frontier monotonicity, dimensional consistency of the impact
+            denominators), including a schedule-invariance test that initially failed and surfaced a discretisation
+            error in the path integral accumulator. The fix — switching from forward to midpoint accumulation — is
+            documented in the Engineering Notes.</li>
+          <li>Demonstration of the Almgren-Chriss parameter estimation methodology — heteroskedastic WLS
+            regression on synthetic fills with known ground truth — with calibration scatter plots, parameter
+            recovery bar chart, and residual Q-Q plots against N(0,1), in the <a href="/calibration">Calibration
+            tab</a>.</li>
+        </ul>
+      </section>
+
+      <!-- ── 5. Limitations ─────────────────────────────────────────── -->
+      <section class="section" id="limitations">
+        <div class="section-header">
+          <div class="section-icon amber">
+            <span class="material-icons">warning_amber</span>
           </div>
+          <h2>Limitations</h2>
         </div>
-      </div>
-    </section>
 
-    <!-- ── 4. Limitations ─────────────────────────────────────────── -->
-    <section class="section" id="limitations">
-      <div class="section-header">
-        <div class="section-icon amber">
-          <span class="material-icons">warning_amber</span>
+        <p>These are not caveats buried in small print. They are explicit, intentional constraints on an MVP model, and
+          understanding them is part of what the tool is designed to demonstrate. In a real TCA context, intellectual
+          honesty about model limitations is exactly what separates credible analysis from dangerous overconfidence.</p>
+
+        <ul>
+          <li><strong>Parameters are not calibrated.</strong> η and γ are literature central estimates from Almgren et
+            al. 2005 with material standard errors. Real TCA vendors calibrate these coefficients from their own
+            execution data — millions of historical fills matched against contemporaneous market conditions. Without
+            that data, the numbers are indicative, not predictive.</li>
+          <li><strong>Volatility and ADV are static daily averages.</strong> Real impact models condition on realised
+            intraday volatility, current order book depth, and time-of-day volume profiles. A 2 pm AAPL trade looks very
+            different from an 8 am open or a 3:50 pm close. FrontierView uses daily averages throughout.</li>
+          <li><strong>Equities only.</strong> The model assumes a centralised, lit exchange with a measurable average
+            daily volume. FX spot is OTC, fragmented across venues, with no canonical ADV. Applying this framework to FX
+            would require a fundamentally different microstructure model (e.g., Butz &amp; Oomen, 2019).</li>
+          <li><strong>No intraday volume profile.</strong> Real VWAP execution weights participation by expected
+            intraday volume — higher at open and close, lower mid-day. FrontierView uses flat time bins throughout the
+            execution horizon.</li>
+          <li><strong>Canonical schedules, not a full numerical optimiser.</strong> The true Almgren-Chriss optimum with
+            a 0.6 exponent has no closed-form solution (unlike the linear case). Solving it numerically introduces
+            convergence complexity not warranted for a demonstration tool. The canonical schedule menu is an honest
+            alternative: it shows where real strategies sit on the frontier without pretending to solve a problem that
+            requires calibrated data to solve meaningfully.</li>
+          <li><strong>Variance is execution shortfall variance, not P&amp;L variance.</strong> The y-axis of the
+            frontier measures uncertainty in execution cost relative to arrival price. It is not total portfolio P&amp;L
+            variance, which would include alpha decay, factor exposures, and other components entirely outside this
+            model's scope.</li>
+          <li><strong>Linearity of permanent impact is required by no-arbitrage.</strong> This is required by
+            no-arbitrage (Huberman &amp; Stanzl 2004) and is what makes permanent cost schedule-invariant under the path
+            integral. Switching to a non-linear permanent impact function would break both properties and require a
+            fundamental restructuring of the cost decomposition. The model's parameter values (γ = 0.314 from Almgren
+            2005, Table 3) are calibrated specifically for the linear form.</li>
+        </ul>
+
+        <div class="alert info">
+          <span class="material-icons">lightbulb</span>
+          <div class="alert-body"><strong>Natural extensions.</strong> Real-data calibration, intraday volume profiles,
+            multi-asset support, and backtesting against historical fills are the natural next steps for a production
+            TCA system. The <a href="/calibration">Calibration tab</a> in FrontierView demonstrates the parameter
+            estimation methodology on synthetic data with known ground truth, without requiring production data.</div>
         </div>
-        <h2>Limitations</h2>
-      </div>
+      </section>
 
-      <p>These are not caveats buried in small print. They are explicit, intentional constraints on an MVP model, and understanding them is part of what the tool is designed to demonstrate. In a real TCA context, intellectual honesty about model limitations is exactly what separates credible analysis from dangerous overconfidence.</p>
-
-      <ul>
-        <li><strong>Parameters are not calibrated.</strong> η and γ are literature central estimates from Almgren et al. 2005 with material standard errors. Real TCA vendors calibrate these coefficients from their own execution data — millions of historical fills matched against contemporaneous market conditions. Without that data, the numbers are indicative, not predictive.</li>
-        <li><strong>Volatility and ADV are static daily averages.</strong> Real impact models condition on realised intraday volatility, current order book depth, and time-of-day volume profiles. A 2 pm AAPL trade looks very different from an 8 am open or a 3:50 pm close. FrontierView uses daily averages throughout.</li>
-        <li><strong>Equities only.</strong> The model assumes a centralised, lit exchange with a measurable average daily volume. FX spot is OTC, fragmented across venues, with no canonical ADV. Applying this framework to FX would require a fundamentally different microstructure model (e.g., Butz &amp; Oomen, 2019).</li>
-        <li><strong>No intraday volume profile.</strong> Real VWAP execution weights participation by expected intraday volume — higher at open and close, lower mid-day. FrontierView uses flat time bins throughout the execution horizon.</li>
-        <li><strong>Canonical schedules, not a full numerical optimiser.</strong> The true Almgren-Chriss optimum with a 0.6 exponent has no closed-form solution (unlike the linear case). Solving it numerically introduces convergence complexity not warranted for a demonstration tool. The canonical schedule menu is an honest alternative: it shows where real strategies sit on the frontier without pretending to solve a problem that requires calibrated data to solve meaningfully.</li>
-        <li><strong>Variance is execution shortfall variance, not P&amp;L variance.</strong> The y-axis of the frontier measures uncertainty in execution cost relative to arrival price. It is not total portfolio P&amp;L variance, which would include alpha decay, factor exposures, and other components entirely outside this model's scope.</li>
-      </ul>
-
-      <div class="alert info">
-        <span class="material-icons">lightbulb</span>
-        <div class="alert-body"><strong>Natural extensions.</strong> Real-data calibration, intraday volume profiles, multi-asset support, and backtesting against historical fills are the natural next steps for a production TCA system. The synthetic calibration tab in FrontierView demonstrates the parameter estimation methodology without requiring production data.</div>
-      </div>
-    </section>
-
-    <!-- ── 5. References ──────────────────────────────────────────── -->
-    <section class="section" id="references">
-      <div class="section-header">
-        <div class="section-icon purple">
-          <span class="material-icons">menu_book</span>
+      <!-- ── 5. Engineering Notes ──────────────────────────────────── -->
+      <section class="section" id="engineering-notes">
+        <div class="section-header">
+          <div class="section-icon blue">
+            <span class="material-icons">engineering</span>
+          </div>
+          <h2>Engineering Notes</h2>
         </div>
-        <h2>References</h2>
-      </div>
 
-      <p>The foundational literature behind FrontierView. The Almgren papers are the direct source of the model; the others provide broader microstructure context for why it is constructed as it is.</p>
+        <h3>Model verification</h3>
+        <p>The model's correctness is verified by a suite of property-based tests asserting mathematical invariants of
+          the Almgren-Chriss framework: schedule-invariance of permanent cost (a consequence of linear permanent
+          impact), monotonicity of the efficient frontier in risk aversion, convergence of the AC linear schedule to
+          TWAP and to instant execution at the limits of risk aversion, and dimensional sanity of the temporary impact
+          denominator.</p>
 
-      <div class="ref-grid">
-        <a class="ref-card" href="https://www.courant.nyu.edu/~almgren/papers/optliq.pdf" target="_blank" rel="noopener">
-          <div class="ref-icon">
-            <span class="material-icons">auto_stories</span>
-          </div>
-          <div>
-            <span class="ref-title">Almgren &amp; Chriss (2001)</span>
-            <span class="ref-desc">Optimal execution of portfolio transactions. Foundational framework establishing the cost–risk trade-off, execution shortfall decomposition, and the concept of the efficient frontier for execution schedules.</span>
-            <span class="ref-year">Journal of Risk · 3(2) · pp. 5–39</span>
-          </div>
-        </a>
-        <a class="ref-card" href="https://www.courant.nyu.edu/~almgren/papers/costestim.pdf" target="_blank" rel="noopener">
-          <div class="ref-icon">
-            <span class="material-icons">auto_stories</span>
-          </div>
-          <div>
-            <span class="ref-title">Almgren, Thum, Hauptmann &amp; Li (2005)</span>
-            <span class="ref-desc">Direct estimation of equity market impact. Empirical extension of the 2001 framework, establishing the power-law exponent ≈ 0.6 for temporary impact. Source of the η and γ coefficients used in FrontierView.</span>
-            <span class="ref-year">Risk · 18(7) · pp. 57–62</span>
-          </div>
-        </a>
-        <a class="ref-card" href="https://doi.org/10.2307/1913210" target="_blank" rel="noopener">
-          <div class="ref-icon amber">
-            <span class="material-icons">auto_stories</span>
-          </div>
-          <div>
-            <span class="ref-title">Kyle (1985)</span>
-            <span class="ref-desc">Continuous auctions and insider trading. Seminal model of informed trading and linear price impact that underpins much of modern microstructure theory.</span>
-            <span class="ref-year">Econometrica · 53(6) · pp. 1315–1335</span>
-          </div>
-        </a>
-        <a class="ref-card" href="https://doi.org/10.1111/j.1468-0262.2004.00531.x" target="_blank" rel="noopener">
-          <div class="ref-icon amber">
-            <span class="material-icons">auto_stories</span>
-          </div>
-          <div>
-            <span class="ref-title">Huberman &amp; Stanzl (2004)</span>
-            <span class="ref-desc">Price manipulation and quasi-arbitrage. Establishes no-arbitrage constraints on the functional form of permanent impact — explaining why permanent impact must be linear in order size.</span>
-            <span class="ref-year">Econometrica · 72(4) · pp. 1247–1275</span>
-          </div>
-        </a>
-        <a class="ref-card" href="https://doi.org/10.1080/14697688.2010.489024" target="_blank" rel="noopener">
-          <div class="ref-icon green">
-            <span class="material-icons">auto_stories</span>
-          </div>
-          <div>
-            <span class="ref-title">Gatheral (2010)</span>
-            <span class="ref-desc">No-dynamic-arbitrage and market impact. Derives conditions on transient impact models that are consistent with the absence of dynamic arbitrage; extends the Almgren-Chriss framework to more general decay kernels.</span>
-            <span class="ref-year">Quantitative Finance · 10(7) · pp. 749–759</span>
-          </div>
-        </a>
-        <a class="ref-card" href="https://doi.org/10.1080/14697688.2018.1443279" target="_blank" rel="noopener">
-          <div class="ref-icon purple">
-            <span class="material-icons">auto_stories</span>
-          </div>
-          <div>
-            <span class="ref-title">Butz &amp; Oomen (2019)</span>
-            <span class="ref-desc">Internalisation by electronic FX spot dealers. Illustrates why the equity market impact framework does not extend to OTC FX and what alternative microstructure model is appropriate for fragmented, dealer-intermediated markets.</span>
-            <span class="ref-year">Quantitative Finance · 19(1) · pp. 35–56</span>
-          </div>
-        </a>
-      </div>
-    </section>
+        <p>The schedule-invariance test initially failed, surfacing a discretisation error in the permanent cost path
+          integral ∫₀ᵀ g(v(t)) · (X − x(t))/X dt. The original implementation used a forward (left-Riemann) accumulator:
+          each bin paid the cumulative drift caused by strictly prior bins. This convention does not preserve
+          schedule-invariance at finite bin counts — front-loaded schedules systematically underpaid permanent cost
+          relative to back-loaded ones. The fix was to switch to a midpoint (trapezoidal) accumulator, where each bin
+          pays prior cumulative drift plus half its own — the second-order discretisation of the underlying integral,
+          which restores schedule-invariance to within numerical tolerance.</p>
 
-  </main>
-</div>
+        <p>This is a small story but a representative one: the property test caught a gap between the inline comment
+          ("schedule-invariant by construction") and the actual code behaviour. Comments describe intent; tests verify
+          behaviour.</p>
 
-<footer>
-  <span class="material-icons">info</span>
-  FrontierView — Pre-Trade Market Impact Visualiser — Parameters are literature estimates; not calibrated to live data; not for use in live trading decisions.
-</footer>
+        <h3>AC linear schedule — linearisation point</h3>
+        <p>The closed-form Almgren-Chriss solution requires linearising the temporary impact function around a reference
+          participation rate. The implementation linearises at the order's own TWAP participation rate
+          (<em>p</em>₀ = (<em>order_size</em> / <em>horizon</em>) / <em>V</em><sub>hourly</sub>), rather than at a fixed
+          reference such as 10% ADV.</p>
 
-<script>
-  const sections = document.querySelectorAll('section[id]');
-  const navItems = document.querySelectorAll('.nav-item');
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        navItems.forEach(n => n.classList.remove('active'));
-        const active = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
-        if (active) active.classList.add('active');
-      }
-    });
-  }, { rootMargin: '-40% 0px -55% 0px' });
-  sections.forEach(s => obs.observe(s));
-</script>
+        <p>This matters at the extremes. A linearisation around 10% ADV gives a poor approximation for an order
+          operating at 0.1% ADV, because the slope of the 0.6-power-law impact function differs by an order of
+          magnitude between those two regimes. By linearising at the order's own rate, the AC schedule's η̃ slope is
+          calibrated to the participation regime where it actually operates — a small but meaningful improvement in
+          fidelity for the canonical schedule menu.</p>
+      </section>
+
+      <!-- ── 6. References ──────────────────────────────────────────── -->
+      <section class="section" id="references">
+        <div class="section-header">
+          <div class="section-icon purple">
+            <span class="material-icons">menu_book</span>
+          </div>
+          <h2>References</h2>
+        </div>
+
+        <p>The foundational literature behind FrontierView. The Almgren papers are the direct source of the model; the
+          others provide broader microstructure context for why it is constructed as it is.</p>
+
+        <div class="ref-grid">
+          <a class="ref-card" href="https://www.smallake.kr/wp-content/uploads/2016/03/optliq.pdf" target="_blank"
+            rel="noopener">
+            <div class="ref-icon">
+              <span class="material-icons">auto_stories</span>
+            </div>
+            <div>
+              <span class="ref-title">Almgren &amp; Chriss (2001)</span>
+              <span class="ref-desc">Optimal execution of portfolio transactions. Foundational framework establishing
+                the cost–risk trade-off, execution shortfall decomposition, and the concept of the efficient frontier
+                for execution schedules.</span>
+              <span class="ref-year">Journal of Risk · 3(2) · pp. 5–39</span>
+            </div>
+          </a>
+          <a class="ref-card" href="https://www.cis.upenn.edu/~mkearns/finread/costestim.pdf" target="_blank"
+            rel="noopener">
+            <div class="ref-icon">
+              <span class="material-icons">auto_stories</span>
+            </div>
+            <div>
+              <span class="ref-title">Almgren, Thum, Hauptmann &amp; Li (2005)</span>
+              <span class="ref-desc">Direct estimation of equity market impact. Empirical extension of the 2001
+                framework, establishing the power-law exponent ≈ 0.6 for temporary impact. Source of the η and γ
+                coefficients used in FrontierView.</span>
+              <span class="ref-year">Risk · 18(7) · pp. 57–62</span>
+            </div>
+          </a>
+          <a class="ref-card" href="https://doi.org/10.2307/1913210" target="_blank" rel="noopener">
+            <div class="ref-icon amber">
+              <span class="material-icons">auto_stories</span>
+            </div>
+            <div>
+              <span class="ref-title">Kyle (1985)</span>
+              <span class="ref-desc">Continuous auctions and insider trading. Seminal model of informed trading and
+                linear price impact that underpins much of modern microstructure theory.</span>
+              <span class="ref-year">Econometrica · 53(6) · pp. 1315–1335</span>
+            </div>
+          </a>
+          <a class="ref-card" href="https://doi.org/10.1111/j.1468-0262.2004.00531.x" target="_blank" rel="noopener">
+            <div class="ref-icon amber">
+              <span class="material-icons">auto_stories</span>
+            </div>
+            <div>
+              <span class="ref-title">Huberman &amp; Stanzl (2004)</span>
+              <span class="ref-desc">Price manipulation and quasi-arbitrage. Establishes no-arbitrage constraints on the
+                functional form of permanent impact — explaining why permanent impact must be linear in order
+                size.</span>
+              <span class="ref-year">Econometrica · 72(4) · pp. 1247–1275</span>
+            </div>
+          </a>
+          <a class="ref-card" href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1292353" target="_blank"
+            rel="noopener">
+            <div class="ref-icon green">
+              <span class="material-icons">auto_stories</span>
+            </div>
+            <div>
+              <span class="ref-title">Gatheral (2010)</span>
+              <span class="ref-desc">No-dynamic-arbitrage and market impact. Derives conditions on transient impact
+                models that are consistent with the absence of dynamic arbitrage; extends the Almgren-Chriss framework
+                to more general decay kernels.</span>
+              <span class="ref-year">Quantitative Finance · 10(7) · pp. 749–759</span>
+            </div>
+          </a>
+          <a class="ref-card" href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3076575" target="_blank"
+            rel="noopener">
+            <div class="ref-icon purple">
+              <span class="material-icons">auto_stories</span>
+            </div>
+            <div>
+              <span class="ref-title">Butz &amp; Oomen (2019)</span>
+              <span class="ref-desc">Internalisation by electronic FX spot dealers. Illustrates why the equity market
+                impact framework does not extend to OTC FX and what alternative microstructure model is appropriate for
+                fragmented, dealer-intermediated markets.</span>
+              <span class="ref-year">Quantitative Finance · 19(1) · pp. 35–56</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+
+    </main>
+  </div>
+
+  <footer>
+    <span class="material-icons">info</span>
+    FrontierView — Pre-Trade Market Impact Visualiser — Parameters are literature estimates; not calibrated to live
+    data; not for use in live trading decisions.
+  </footer>
+
+  <script>
+    const sections = document.querySelectorAll('section[id]');
+    const navItems = document.querySelectorAll('.nav-item');
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting)
+        {
+          navItems.forEach(n => n.classList.remove('active'));
+          const active = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    sections.forEach(s => obs.observe(s));
+  </script>
 </body>
+
 </html>

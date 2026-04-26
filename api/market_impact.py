@@ -93,10 +93,16 @@ def schedule_back_loaded(
 # ---------------------------------------------------------------------------
 
 
-def _linearised_eta(eta: float, sigma_daily: float, v_hourly: float) -> float:
-    """Temporary impact slope linearised at 10% ADV participation."""
+def _linearised_eta(
+    eta: float, sigma_daily: float, v_hourly: float,
+    order_size: float, horizon_hours: float
+) -> float:
+    """Linearise at actual TWAP participation rate of this specific order."""
+    twap_rate = order_size / horizon_hours          # shares/hour at TWAP
+    p0 = twap_rate / v_hourly                       # dimensionless participation
+    p0 = max(p0, 1e-4)                              # floor to avoid blow-up
     return max(
-        eta * sigma_daily * 0.6 * (0.10**-0.4) / (TRADING_HOURS_PER_DAY * v_hourly),
+        eta * sigma_daily * 0.6 * (p0 ** -0.4) / v_hourly,
         1e-12,
     )
 
@@ -139,7 +145,7 @@ def schedule_ac_linear(
     v_hourly = params.adv / TRADING_HOURS_PER_DAY
     dt = horizon_hours / n_bins
     sigma_bin = params.sigma * math.sqrt(dt / TRADING_HOURS_PER_DAY)
-    eta_tilde = _linearised_eta(params.eta, params.sigma, v_hourly)
+    eta_tilde = _linearised_eta(params.eta, params.sigma, v_hourly, order_size, horizon_hours)
     kappa = _ac_kappa(lambda_risk, sigma_bin, eta_tilde)
     inventory = _ac_inventory(order_size, kappa, horizon_hours, n_bins, dt)
     rates = [(inventory[i] - inventory[i + 1]) / dt for i in range(n_bins)]

@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrontierView — Pre-Trade Market Impact</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────────── */
+    :root {
+      --md-primary: #22d3ee;
+      --md-on-primary: #083344;
+      --md-primary-container: #0e7490;
+      --md-on-primary-cont: #cffafe;
+
+      --md-secondary: #67e8f9;
+      --md-on-secondary: #0c4a6e;
+
+      --md-tertiary: #d6bee4;
+      --md-on-tertiary: #3b2948;
+
+      --md-error: #ffb4ab;
+      --md-error-container: #93000a;
+
+      --md-surface: #0b0f1a;
+      --md-surface-1: #0f172a;
+      --md-surface-2: #1e293b;
+      --md-surface-3: #334155;
+      --md-surface-4: #475569;
+      --md-on-surface: #f1f5f9;
+      --md-on-surface-var: #94a3b8;
+      --md-outline: #64748b;
+      --md-outline-var: rgba(255, 255, 255, 0.08);
+
+      --md-warning: #ffb74d;
+      --md-warning-container: #3d2000;
+      --md-success: #79d47f;
+      --md-success-container: #003910;
+
+      --md-shape-xs: 4px;
+      --md-shape-sm: 8px;
+      --md-shape-md: 12px;
+      --md-shape-lg: 16px;
+      --md-shape-xl: 28px;
+      --md-shape-full: 9999px;
+
+      --md-elev1: 0 1px 2px rgba(0,0,0,.3), 0 1px 3px 1px rgba(0,0,0,.15);
+      --md-elev2: 0 1px 2px rgba(0,0,0,.3), 0 2px 6px 2px rgba(0,0,0,.15);
+      --md-elev3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px rgba(0,0,0,.3);
+    }
+
+    /* ── Reset & base ────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    a { color: var(--md-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Navigation rail ─────────────────────────────────────────────── */
+    .nav {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 80px;
+      background: var(--md-surface-1);
+      border-right: 1px solid var(--md-outline-var);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 1rem 0; gap: 0.25rem; z-index: 100;
+    }
+
+    .nav-logo {
+      width: 48px; height: 48px;
+      border-radius: var(--md-shape-md);
+      background: var(--md-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+      text-decoration: none;
+    }
+    .nav-logo .material-icons { color: var(--md-on-primary-cont); font-size: 28px; }
+
+    .nav-item {
+      width: 56px; padding: 0.4rem 0;
+      border-radius: var(--md-shape-full);
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.2rem; cursor: pointer; text-decoration: none;
+      transition: background 0.2s;
+      color: var(--md-on-surface-var); font-size: 10px;
+    }
+    .nav-item:hover { background: rgba(34,211,238,0.1); text-decoration: none; }
+    .nav-item.active { color: var(--md-primary); }
+    .nav-item.active .nav-pill {
+      background: var(--md-primary-container);
+      width: 56px; height: 32px; border-radius: var(--md-shape-full);
+    }
+    .nav-pill {
+      width: 56px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-item .material-icons { font-size: 22px; }
+
+    /* ── Main layout ─────────────────────────────────────────────────── */
+    .layout { margin-left: 80px; }
+
+    /* ── Hero ────────────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #001a2e 0%, #0b0f1a 50%, #0a1628 100%);
+      padding: 2.5rem 3rem 2rem;
+      border-bottom: 1px solid var(--md-outline-var);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%);
+    }
+    .hero-inner { max-width: 1200px; position: relative; z-index: 1; }
+    .hero h1 {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 300; color: #fff;
+      letter-spacing: -0.02em; line-height: 1.2;
+      margin-bottom: 0.4rem;
+    }
+    .hero h1 span { color: var(--md-primary); font-weight: 400; }
+    .hero-sub {
+      font-size: 0.9rem; color: var(--md-on-surface-var);
+      max-width: 520px; line-height: 1.5;
+    }
+
+    /* ── Content wrapper ─────────────────────────────────────────────── */
+    .content { padding: 2rem 3rem; max-width: 1200px; }
+
+    /* ── Controls card ───────────────────────────────────────────────── */
+    .controls-card {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+
+    .field label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--md-on-surface-var);
+    }
+
+    .field select,
+    .field input[type="number"] {
+      background: var(--md-surface-2);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-sm);
+      color: var(--md-on-surface);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.55rem 0.75rem;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+    }
+    .field select:focus,
+    .field input[type="number"]:focus {
+      border-color: var(--md-primary);
+    }
+
+    /* direction toggle */
+    .dir-toggle {
+      display: flex;
+      background: var(--md-surface-2);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-sm);
+      overflow: hidden;
+    }
+    .dir-toggle input[type="radio"] { display: none; }
+    .dir-toggle label {
+      flex: 1; text-align: center;
+      padding: 0.55rem 0.5rem;
+      font-size: 0.85rem; font-weight: 500;
+      cursor: pointer;
+      color: var(--md-on-surface-var);
+      transition: background 0.15s, color 0.15s;
+      text-transform: none; letter-spacing: 0;
+    }
+    .dir-toggle input[type="radio"]:checked + label {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-cont);
+    }
+
+    .btn-analyse {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      border-radius: var(--md-shape-md);
+      padding: 0.6rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 0.4rem;
+      white-space: nowrap;
+      transition: opacity 0.2s, background 0.2s;
+      height: 38px;
+    }
+    .btn-analyse:hover { opacity: 0.85; }
+    .btn-analyse:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-analyse .material-icons { font-size: 18px; }
+
+    /* spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(8,51,68,0.3);
+      border-top-color: var(--md-on-primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Params bar ──────────────────────────────────────────────────── */
+    .params-bar {
+      display: flex; flex-wrap: wrap; gap: 1.5rem;
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .param-item { display: flex; flex-direction: column; gap: 0.15rem; }
+    .param-label {
+      font-size: 0.67rem; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--md-outline);
+    }
+    .param-value {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem; color: var(--md-primary);
+      font-weight: 500;
+    }
+
+    /* ── Charts grid ─────────────────────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 1.25rem;
+    }
+
+    .chart-card {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1.25rem;
+    }
+
+    .chart-card.wide { grid-column: 1 / -1; }
+
+    .chart-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .chart-icon {
+      width: 32px; height: 32px;
+      border-radius: var(--md-shape-sm);
+      background: var(--md-primary-container);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .chart-icon .material-icons { color: var(--md-on-primary-cont); font-size: 17px; }
+    .chart-icon.amber { background: var(--md-warning-container); }
+    .chart-icon.amber .material-icons { color: var(--md-warning); }
+    .chart-icon.green { background: var(--md-success-container); }
+    .chart-icon.green .material-icons { color: var(--md-success); }
+    .chart-icon.purple { background: rgba(59,41,72,0.8); }
+    .chart-icon.purple .material-icons { color: var(--md-tertiary); }
+
+    .chart-title { font-size: 0.9rem; font-weight: 500; color: var(--md-on-surface); }
+    .chart-sub { font-size: 0.75rem; color: var(--md-outline); margin-top: 0.1rem; }
+
+    .chart-wrap { position: relative; }
+
+    /* ── Empty / error states ────────────────────────────────────────── */
+    #results { display: none; }
+
+    .empty-state {
+      text-align: center; padding: 4rem 2rem;
+      color: var(--md-on-surface-var);
+    }
+    .empty-state .material-icons { font-size: 48px; color: var(--md-outline); margin-bottom: 1rem; display: block; }
+    .empty-state p { font-size: 0.9rem; }
+
+    .error-banner {
+      display: flex; gap: 0.75rem; align-items: flex-start;
+      background: rgba(255,180,171,0.08);
+      border: 1px solid rgba(255,180,171,0.25);
+      border-radius: var(--md-shape-md);
+      padding: 0.9rem 1rem;
+      font-size: 0.875rem;
+      color: var(--md-error);
+      margin-bottom: 1.5rem;
+    }
+    .error-banner .material-icons { font-size: 20px; flex-shrink: 0; }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--md-outline-var);
+      margin-left: 80px;
+      padding: 1.25rem 3rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      color: var(--md-outline); font-size: 0.78rem;
+    }
+    footer .material-icons { font-size: 15px; }
+
+    /* ── Custom schedule dropdown ────────────────────────────────────── */
+    .sched-drop { position: relative; }
+    .sched-btn {
+      width: 100%;
+      background: var(--md-surface-2);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-sm);
+      color: var(--md-on-surface);
+      font-family: inherit; font-size: 0.9rem;
+      padding: 0.55rem 0.75rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+    .sched-btn:hover, .sched-btn:focus { border-color: var(--md-primary); outline: none; }
+    .sched-menu {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--md-surface-2);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-sm);
+      overflow: hidden; z-index: 200;
+      display: none; box-shadow: var(--md-elev3);
+    }
+    .sched-menu.open { display: block; }
+    .sched-opt {
+      display: flex; align-items: center; gap: 0.5rem;
+      width: 100%; padding: 0.5rem 0.75rem;
+      background: none; border: none;
+      font-family: inherit; font-size: 0.88rem;
+      color: var(--md-on-surface); cursor: pointer; text-align: left;
+      transition: background 0.15s;
+    }
+    .sched-opt:hover { background: rgba(34,211,238,0.08); }
+    .sched-opt.active { background: rgba(34,211,238,0.05); color: var(--md-primary); }
+    .color-sq { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-card.wide { grid-column: 1; }
+    }
+    @media (max-width: 700px) {
+      .nav { display: none; }
+      .layout, footer { margin-left: 0; }
+      .hero, .content { padding: 1.5rem 1.25rem; }
+      .controls-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .controls-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="nav">
+    <a class="nav-logo" href="/">
+      <span class="material-icons">show_chart</span>
+    </a>
+    <a class="nav-item active" href="/">
+      <div class="nav-pill"><span class="material-icons">analytics</span></div>
+      Tool
+    </a>
+    <a class="nav-item" href="/about">
+      <div class="nav-pill"><span class="material-icons">info</span></div>
+      About
+    </a>
+  </nav>
+
+  <div class="layout">
+    <header class="hero">
+      <div class="hero-inner">
+        <h1>FrontierView — <span>Pre-Trade</span> Market Impact</h1>
+        <p class="hero-sub">Almgren-Chriss 2005 execution cost analysis. Enter an order to see the efficient frontier, schedule shape, and impact decomposition.</p>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ── Controls ─────────────────────────────────────────────────── -->
+      <div class="controls-card">
+        <div class="controls-grid">
+
+          <div class="field">
+            <label>Symbol</label>
+            <select id="symbol">
+              <option value="AAPL">AAPL</option>
+              <option value="MSFT">MSFT</option>
+              <option value="GOOGL">GOOGL</option>
+              <option value="JPM">JPM</option>
+              <option value="SPY">SPY</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Order Size (shares)</label>
+            <input type="number" id="order-size" value="500000" min="1000" step="10000">
+          </div>
+
+          <div class="field">
+            <label>Direction</label>
+            <div class="dir-toggle">
+              <input type="radio" name="side" id="side-buy" value="buy" checked>
+              <label for="side-buy">Buy</label>
+              <input type="radio" name="side" id="side-sell" value="sell">
+              <label for="side-sell">Sell</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Horizon (hours)</label>
+            <select id="horizon">
+              <option value="0.5">0.5 h</option>
+              <option value="1">1 h</option>
+              <option value="2" selected>2 h</option>
+              <option value="4">4 h</option>
+              <option value="6">6 h</option>
+              <option value="6.5">Full day</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Schedule</label>
+            <div class="sched-drop" id="sched-drop">
+              <button type="button" class="sched-btn" id="sched-btn">
+                <span style="display:flex;align-items:center;gap:0.5rem">
+                  <span class="color-sq" id="sched-sel-sq"></span>
+                  <span id="sched-sel-label">AC Linear</span>
+                </span>
+                <span class="material-icons" style="font-size:16px;color:var(--md-outline)">expand_more</span>
+              </button>
+              <div class="sched-menu" id="sched-menu"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn-analyse" id="analyse-btn" onclick="runAnalysis()">
+              <span class="material-icons" id="btn-icon">play_arrow</span>
+              <span id="btn-label">Analyse</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Error banner (hidden by default) ──────────────────────────── -->
+      <div class="error-banner" id="error-banner" style="display:none">
+        <span class="material-icons">error_outline</span>
+        <span id="error-text"></span>
+      </div>
+
+      <!-- ── Empty state ───────────────────────────────────────────────── -->
+      <div id="empty-state" class="empty-state">
+        <span class="material-icons">scatter_plot</span>
+        <p>Configure an order above and click <strong>Analyse</strong> to compute the efficient frontier.</p>
+      </div>
+
+      <!-- ── Results ───────────────────────────────────────────────────── -->
+      <div id="results">
+
+        <!-- Model params -->
+        <div class="params-bar" id="params-bar"></div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <div class="chart-icon"><span class="material-icons">scatter_plot</span></div>
+              <div>
+                <div class="chart-title">Efficient Frontier</div>
+                <div class="chart-sub">Expected cost (bps) vs. execution variance (bps²) — indexed by risk aversion λ</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:280px">
+              <canvas id="frontier-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-icon amber"><span class="material-icons">timeline</span></div>
+              <div>
+                <div class="chart-title">Execution Schedule</div>
+                <div class="chart-sub">Participation rate per time bin</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:240px">
+              <canvas id="schedule-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-icon green"><span class="material-icons">bar_chart</span></div>
+              <div>
+                <div class="chart-title">Impact Decomposition</div>
+                <div class="chart-sub">Spread · temporary · permanent cost (bps)</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:240px">
+              <canvas id="decomp-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <div class="chart-icon purple"><span class="material-icons">layers</span></div>
+              <div>
+                <div class="chart-title">Regime Sensitivity</div>
+                <div class="chart-sub">Same order — calm / normal / stressed market conditions</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:280px">
+              <canvas id="regime-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer>
+    <span class="material-icons">info</span>
+    FrontierView — Parameters are Almgren 2005 literature estimates; not calibrated to live data; not for use in live trading decisions. <a href="/about" style="margin-left:0.5rem">Model documentation →</a>
+  </footer>
+
+  <script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+    Chart.defaults.font.family = '"Inter", ui-sans-serif, system-ui, sans-serif';
+
+    const SCHEDULE_TYPES = ['twap', 'front_loaded', 'back_loaded', 'ac_linear'];
+    const SCHEDULE_LABELS = { twap: 'TWAP', front_loaded: 'Front-loaded', back_loaded: 'Back-loaded', ac_linear: 'AC Linear' };
+    const SCHEDULE_COLORS = { twap: '#94a3b8', front_loaded: '#f59e0b', back_loaded: '#8b5cf6', ac_linear: '#10b981' };
+
+    let frontierChart = null;
+    let scheduleChart = null;
+    let decompChart = null;
+    let regimeChart = null;
+
+    // ── Schedule dropdown ────────────────────────────────────────────
+    let _currentScheduleType = 'ac_linear';
+    let _cachedResults = null;
+    let _cachedHorizon = null;
+    let _cachedOrderSize = null;
+
+    function initSchedDropdown() {
+      const menu = document.getElementById('sched-menu');
+      menu.innerHTML = SCHEDULE_TYPES.map(st => `
+        <button type="button" class="sched-opt${st === _currentScheduleType ? ' active' : ''}"
+                data-st="${st}" onclick="selectSchedule('${st}')">
+          <span class="color-sq" style="background:${SCHEDULE_COLORS[st]}"></span>
+          ${SCHEDULE_LABELS[st]}
+        </button>`).join('');
+      syncSchedBtn();
+    }
+
+    function syncSchedBtn() {
+      document.getElementById('sched-sel-sq').style.background = SCHEDULE_COLORS[_currentScheduleType];
+      document.getElementById('sched-sel-label').textContent = SCHEDULE_LABELS[_currentScheduleType];
+    }
+
+    document.getElementById('sched-btn').addEventListener('click', () => {
+      document.getElementById('sched-menu').classList.toggle('open');
+    });
+
+    document.addEventListener('click', e => {
+      const drop = document.getElementById('sched-drop');
+      if (!drop.contains(e.target)) document.getElementById('sched-menu').classList.remove('open');
+    });
+
+    function selectSchedule(st) {
+      _currentScheduleType = st;
+      document.getElementById('sched-menu').classList.remove('open');
+      document.querySelectorAll('.sched-opt').forEach(el =>
+        el.classList.toggle('active', el.dataset.st === st));
+      syncSchedBtn();
+      if (_cachedResults) {
+        renderSchedule(_cachedResults[st].schedule, _cachedHorizon);
+        renderDecomp(_cachedResults[st].impact_decomp, st);
+      }
+    }
+
+    initSchedDropdown();
+
+    async function runAnalysis() {
+      const symbol = document.getElementById('symbol').value;
+      const orderSize = parseFloat(document.getElementById('order-size').value);
+      const side = document.querySelector('input[name="side"]:checked').value;
+      const horizon = parseFloat(document.getElementById('horizon').value);
+
+      setLoading(true);
+      hideError();
+
+      const base = { symbol, order_size: orderSize, side, horizon_hours: horizon };
+
+      try {
+        const fetchJson = (url, body) =>
+          fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(async r => {
+              if (!r.ok) {
+                const err = await r.json().catch(() => ({ detail: r.statusText }));
+                throw new Error(err.detail || r.statusText);
+              }
+              return r.json();
+            });
+
+        const [regimeData, ...schedResponses] = await Promise.all([
+          fetchJson('/api/regime-frontier', { ...base, schedule_type: 'twap' }),
+          ...SCHEDULE_TYPES.map(st => fetchJson('/analyse', { ...base, schedule_type: st })),
+        ]);
+
+        _cachedResults = {};
+        SCHEDULE_TYPES.forEach((st, i) => { _cachedResults[st] = schedResponses[i]; });
+        _cachedHorizon = horizon;
+        _cachedOrderSize = orderSize;
+        renderResults(_cachedResults, horizon, orderSize, regimeData);
+
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('analyse-btn');
+      const label = document.getElementById('btn-label');
+      btn.disabled = loading;
+      if (loading) {
+        document.getElementById('btn-icon').outerHTML = '<span class="spinner" id="btn-icon"></span>';
+        label.textContent = 'Analysing…';
+      } else {
+        document.getElementById('btn-icon').outerHTML = '<span class="material-icons" id="btn-icon">play_arrow</span>';
+        label.textContent = 'Analyse';
+      }
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('error-banner');
+      document.getElementById('error-text').textContent = msg;
+      banner.style.display = 'flex';
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').style.display = 'none';
+    }
+
+    function renderResults(allResults, horizonHours, orderSize, regimeData) {
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('results').style.display = 'block';
+
+      const main = allResults[_currentScheduleType];
+      renderParams(main.model_params);
+      renderFrontier(main.frontier, allResults, horizonHours, orderSize);
+      renderSchedule(main.schedule, horizonHours);
+      renderDecomp(main.impact_decomp, _currentScheduleType);
+      if (regimeData) renderRegimeFrontier(regimeData);
+    }
+
+    function renderParams(p) {
+      const bar = document.getElementById('params-bar');
+      bar.innerHTML = [
+        ['η (temp coeff)', p.eta.toFixed(3)],
+        ['γ (perm coeff)', p.gamma.toFixed(3)],
+        ['σ (daily vol)', (p.sigma * 100).toFixed(2) + '%'],
+        ['ADV', (p.adv / 1e6).toFixed(1) + 'M shares'],
+        ['½ spread', p.half_spread.toFixed(2) + ' bps'],
+      ].map(([k, v]) => `
+        <div class="param-item">
+          <span class="param-label">${k}</span>
+          <span class="param-value">${v}</span>
+        </div>`).join('');
+    }
+
+    function renderFrontier(frontier, allResults, horizonHours, orderSize) {
+      const curveData = frontier.map(pt => ({ x: pt.variance_bps2, y: pt.expected_cost_bps }));
+
+      // One scatter dataset per canonical schedule
+      const canonicalDatasets = SCHEDULE_TYPES.map(st => {
+        const res = allResults[st];
+        const cost = res.impact_decomp.temporary_bps + res.impact_decomp.permanent_bps + res.impact_decomp.spread_bps;
+        const variance = res.impact_decomp.variance_bps2;
+        return {
+          label: SCHEDULE_LABELS[st],
+          data: [{ x: variance, y: cost }],
+          type: 'scatter',
+          backgroundColor: SCHEDULE_COLORS[st],
+          borderColor: SCHEDULE_COLORS[st],
+          pointRadius: 7,
+          pointHoverRadius: 9,
+          pointStyle: 'circle',
+        };
+      });
+
+      if (frontierChart) frontierChart.destroy();
+      frontierChart = new Chart(document.getElementById('frontier-chart'), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'AC Optimal frontier',
+              data: curveData,
+              showLine: true,
+              borderColor: '#22d3ee',
+              backgroundColor: 'rgba(34,211,238,0.08)',
+              pointRadius: 2,
+              pointHoverRadius: 4,
+              borderWidth: 2,
+              tension: 0.3,
+              fill: false,
+            },
+            ...canonicalDatasets,
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                pointStyle: 'circle',
+                padding: 16,
+                color: '#94a3b8',
+                font: { size: 11 },
+                filter: item => item.datasetIndex > 0,
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  if (ctx.datasetIndex === 0) {
+                    const pt = frontier[ctx.dataIndex];
+                    return `Frontier — Cost: ${ctx.parsed.y.toFixed(3)} bps | Var: ${ctx.parsed.x.toFixed(1)} bps² | λ=${pt.lambda_val.toExponential(1)}`;
+                  }
+                  return `${ctx.dataset.label} — Cost: ${ctx.parsed.y.toFixed(3)} bps | Var: ${ctx.parsed.x.toFixed(1)} bps²`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: 'Execution Variance (bps²)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+            y: {
+              type: 'linear',
+              title: { display: true, text: 'Expected Cost (bps)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            }
+          }
+        }
+      });
+    }
+
+    function renderSchedule(schedule, horizonHours) {
+      const dt = horizonHours / schedule.length;
+      const labels = schedule.map(b => `${(b.time_bin * dt).toFixed(1)}h`);
+      const rates = schedule.map(b => +(b.participation_rate * 100).toFixed(3));
+
+      if (scheduleChart) scheduleChart.destroy();
+      scheduleChart = new Chart(document.getElementById('schedule-chart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: '% of hourly ADV',
+            data: rates,
+            backgroundColor: 'rgba(34,211,238,0.55)',
+            borderColor: '#22d3ee',
+            borderWidth: 1,
+            borderRadius: 3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              title: { display: true, text: 'Time into horizon', color: '#64748b', font: { size: 11 } },
+              grid: { display: false },
+              ticks: { maxTicksLimit: 10, maxRotation: 0 },
+            },
+            y: {
+              title: { display: true, text: 'Participation rate (%)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            }
+          }
+        }
+      });
+    }
+
+    const REGIME_COLORS = {
+      calm:     { border: '#79d47f', fill: 'rgba(121,212,127,0.10)' },
+      normal:   { border: '#22d3ee', fill: 'rgba(34,211,238,0.10)'  },
+      stressed: { border: '#ffb74d', fill: 'rgba(255,183,77,0.10)'  },
+    };
+    const REGIME_LABELS = {
+      calm:     'Calm (σ×0.6)',
+      normal:   'Normal (base)',
+      stressed: 'Stressed (σ×1.8, η×1.3, γ×1.3)',
+    };
+
+    function renderRegimeFrontier(data) {
+      const datasets = ['calm', 'normal', 'stressed'].map(regime => ({
+        label: REGIME_LABELS[regime],
+        data: data[regime].map(pt => ({ x: pt.variance_bps2, y: pt.expected_cost_bps })),
+        showLine: true,
+        borderColor: REGIME_COLORS[regime].border,
+        backgroundColor: REGIME_COLORS[regime].fill,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+        tension: 0.3,
+        fill: false,
+      }));
+
+      if (regimeChart) regimeChart.destroy();
+      regimeChart = new Chart(document.getElementById('regime-chart'), {
+        type: 'scatter',
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, color: '#94a3b8', font: { size: 11 } },
+            },
+            subtitle: {
+              display: true,
+              text: 'calm: σ×0.6  ·  normal: base params  ·  stressed: σ×1.8, η×1.3, γ×1.3',
+              color: '#475569',
+              font: { size: 10 },
+              padding: { top: 0, bottom: 8 },
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.dataset.label} — Cost: ${ctx.parsed.y.toFixed(3)} bps | Var: ${ctx.parsed.x.toFixed(1)} bps²`,
+              }
+            },
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: 'Execution Variance (bps²)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+            y: {
+              type: 'linear',
+              title: { display: true, text: 'Expected Cost (bps)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+          },
+        },
+      });
+    }
+
+    function renderDecomp(decomp, scheduleType) {
+      const label = SCHEDULE_LABELS[scheduleType] || scheduleType;
+      const components = [
+        { label: 'Spread', value: decomp.spread_bps, color: 'rgba(103,232,249,0.7)', border: '#67e8f9' },
+        { label: 'Temporary Impact', value: decomp.temporary_bps, color: 'rgba(34,211,238,0.7)', border: '#22d3ee' },
+        { label: 'Permanent Impact', value: decomp.permanent_bps, color: 'rgba(214,190,228,0.7)', border: '#d6bee4' },
+      ];
+      const total = components.reduce((s, c) => s + c.value, 0);
+
+      if (decompChart) decompChart.destroy();
+      decompChart = new Chart(document.getElementById('decomp-chart'), {
+        type: 'bar',
+        data: {
+          labels: components.map(c => c.label),
+          datasets: [{
+            label: `${label} — cost (bps)`,
+            data: components.map(c => +c.value.toFixed(4)),
+            backgroundColor: components.map(c => c.color),
+            borderColor: components.map(c => c.border),
+            borderWidth: 1,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.parsed.x.toFixed(4)} bps  (${(ctx.parsed.x / total * 100).toFixed(1)}% of total)`,
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Cost (bps)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  </script>
+
+</body>
+
+</html>

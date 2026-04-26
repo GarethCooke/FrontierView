@@ -26,6 +26,7 @@ class ImpactDecomp(BaseModel):
     temporary_bps: float
     permanent_bps: float
     spread_bps: float
+    variance_bps2: float
 
 
 class ModelParams(BaseModel):
@@ -41,3 +42,14 @@ class AnalyseResponse(BaseModel):
     schedule: list[ScheduleBin]
     impact_decomp: ImpactDecomp
     model_params: ModelParams
+
+
+class RegimeFrontierPoint(BaseModel):
+    expected_cost_bps: float
+    variance_bps2: float
+
+
+class RegimeFrontierResponse(BaseModel):
+    calm: list[RegimeFrontierPoint]
+    normal: list[RegimeFrontierPoint]
+    stressed: list[RegimeFrontierPoint]

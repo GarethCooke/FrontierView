@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from api.models import (
     AnalyseRequest,
@@ -11,12 +13,15 @@ from api.models import (
     FrontierPoint,
     ImpactDecomp,
     ModelParams,
+    RegimeFrontierPoint,
+    RegimeFrontierResponse,
     ScheduleBin,
 )
 from api.market_impact import (
     SYMBOL_PARAMS,
     TRADING_HOURS_PER_DAY,
     SymbolParams,
+    compute_cost_variance,
     generate_frontier,
     permanent_impact,
     schedule_ac_linear,
@@ -34,6 +39,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/docs", StaticFiles(directory="docs"), name="docs")
+
+
+@app.get("/")
+def root():
+    return FileResponse("docs/index.html", media_type="text/html")
+
+
+@app.get("/about")
+def about():
+    return FileResponse("docs/about.html", media_type="text/html")
+
 
 _SCHEDULE_FNS = {
     "twap": schedule_twap,
@@ -70,8 +88,9 @@ def _decompose_impact(
     ctx: _BinCtx,
     side: str,
     params: SymbolParams,
+    horizon_hours: float,
 ) -> ImpactDecomp:
-    """Compute temporary, spread, and permanent cost components independently."""
+    """Compute cost components and shortfall variance for the schedule."""
     temp_cost = spread_cost = perm_cost = 0.0
     remaining = ctx.order_size
     for _, p in raw:
@@ -84,17 +103,57 @@ def _decompose_impact(
             * (remaining / ctx.order_size) * weight
         )
         remaining -= v * ctx.dt
+    _, variance = compute_cost_variance(raw, ctx.order_size, side, params, horizon_hours)
     return ImpactDecomp(
         temporary_bps=round(temp_cost, 4),
         permanent_bps=round(perm_cost, 4),
         spread_bps=round(spread_cost, 4),
+        variance_bps2=round(variance, 4),
     )
+
+
+_REGIMES = {
+    "calm":     {"sigma": 0.6,  "eta": 1.0, "gamma": 1.0},
+    "normal":   {"sigma": 1.0,  "eta": 1.0, "gamma": 1.0},
+    "stressed": {"sigma": 1.8,  "eta": 1.3, "gamma": 1.3},
+}
 
 
 @app.get("/health")
 def health() -> dict:
     """Liveness check."""
     return {"status": "ok"}
+
+
+@app.post("/api/regime-frontier", response_model=RegimeFrontierResponse)
+def regime_frontier(request: AnalyseRequest) -> RegimeFrontierResponse:
+    """Generate efficient frontiers under calm, normal, and stressed market regimes."""
+    symbol = request.symbol.upper()
+    if symbol not in SYMBOL_PARAMS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown symbol '{symbol}'. Supported: {sorted(SYMBOL_PARAMS)}",
+        )
+
+    base = SYMBOL_PARAMS[symbol]
+    n_bins = max(2, round(request.horizon_hours * 2))
+
+    frontiers: dict[str, list[RegimeFrontierPoint]] = {}
+    for regime, mults in _REGIMES.items():
+        scaled = SymbolParams(
+            adv=base.adv,
+            sigma=base.sigma * mults["sigma"],
+            half_spread=base.half_spread,
+            eta=base.eta * mults["eta"],
+            gamma=base.gamma * mults["gamma"],
+        )
+        pts = generate_frontier(request.order_size, request.side, request.horizon_hours, scaled, n_bins)
+        frontiers[regime] = [
+            RegimeFrontierPoint(expected_cost_bps=p["expected_cost_bps"], variance_bps2=p["variance_bps2"])
+            for p in pts
+        ]
+
+    return RegimeFrontierResponse(**frontiers)
 
 
 @app.post("/analyse", response_model=AnalyseResponse)
@@ -138,7 +197,7 @@ def analyse(request: AnalyseRequest) -> AnalyseResponse:
     return AnalyseResponse(
         frontier=frontier_out,
         schedule=_build_schedule(raw_schedule, ctx),
-        impact_decomp=_decompose_impact(raw_schedule, ctx, request.side, params),
+        impact_decomp=_decompose_impact(raw_schedule, ctx, request.side, params, request.horizon_hours),
         model_params=ModelParams(
             eta=params.eta,
             gamma=params.gamma,
