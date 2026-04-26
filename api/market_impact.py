@@ -34,7 +34,7 @@ def temporary_impact(
 
     power_law = η · σ_daily · (|v| / (6.5 · v_hourly))^0.6
     """
-    participation = abs(v) / (TRADING_HOURS_PER_DAY * v_hourly)
+    participation = abs(v) / v_hourly  # both shares/hour — correct
     return eta * sigma_daily * (participation**0.6) * 1e4
 
 
@@ -45,7 +45,8 @@ def permanent_impact(
 
     g = γ · σ_daily · (|v| / v_hourly)
     """
-    return gamma * sigma_daily * abs(v) / v_hourly * 1e4
+    participation = abs(v) / v_hourly
+    return gamma * sigma_daily * (participation**0.5) * 1e4
 
 
 # ---------------------------------------------------------------------------
@@ -179,13 +180,12 @@ def compute_cost_variance(
         # seller receives less.  No sign flip needed — permanent_impact() is positive.
         perm_cost += (
             permanent_impact(v, v_hourly, params.sigma, params.gamma)
-            * (remaining / order_size)
+            * (remaining - v * dt)
+            / order_size
             * weight
         )
-        # Var[shortfall] = σ²_bin × Σ (x_i / X)² × dt; integral discretised per bin
-        shortfall_variance += (
-            (sigma_bin * 1e4) ** 2 * (remaining / order_size) ** 2 * dt
-        )
+        # Var[shortfall] = σ²_bin × Σ (x_i / X)²; integral discretised per bin
+        shortfall_variance += (sigma_bin * 1e4) ** 2 * (remaining / order_size) ** 2
         remaining -= v * dt
 
     return temp_cost + perm_cost, shortfall_variance
