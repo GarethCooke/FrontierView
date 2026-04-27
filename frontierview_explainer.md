@@ -28,7 +28,7 @@ The tension between these two defines the execution problem: trading fast reduce
 
 FrontierView implements the market impact model from:
 
-> Almgren, R., Thum, C., Hauptmann, E., & Li, H. (2005). *Direct estimation of equity market impact.* Risk, 18(7), 57–62.
+> Almgren, R., Thum, C., Hauptmann, E., & Li, H. (2005). _Direct estimation of equity market impact._ Risk, 18(7), 57–62.
 
 This is an empirical extension of the foundational Almgren-Chriss (2001) framework, fitted to US equity trade data. It is the reference model taught in quantitative finance courses, cited in academic literature, and used as a baseline by TCA vendors.
 
@@ -55,6 +55,7 @@ g(v) = γ · σ · (v / V)
 ```
 
 Where:
+
 - `v` — trading rate (shares per hour); this is a rate, not a cumulative quantity
 - `V` — average daily volume (shares per day)
 - `σ` — daily return volatility (dimensionless, e.g. 0.0155 = 1.55%)
@@ -69,12 +70,12 @@ The result is a dimensionless fractional price change. Multiply by 10,000 for ba
 
 Rather than solving a full numerical optimisation (which requires assumptions that cannot be validated without real order flow data), FrontierView compares four canonical execution strategies:
 
-| Schedule | Description | Character |
-|---|---|---|
-| TWAP | Equal participation rate throughout | Neutral baseline |
-| Front-loaded | Exponentially decreasing rate | Aggressive; accepts higher temporary cost to reduce market exposure time |
-| Back-loaded | Exponentially increasing rate | Passive; accepts higher uncertainty to minimise initial impact |
-| AC Linear | Almgren-Chriss closed-form optimal (linearised model) | Theoretically motivated; typically front-loaded |
+| Schedule     | Description                                           | Character                                                                |
+| ------------ | ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| TWAP         | Equal participation rate throughout                   | Neutral baseline                                                         |
+| Front-loaded | Exponentially decreasing rate                         | Aggressive; accepts higher temporary cost to reduce market exposure time |
+| Back-loaded  | Exponentially increasing rate                         | Passive; accepts higher uncertainty to minimise initial impact           |
+| AC Linear    | Almgren-Chriss closed-form optimal (linearised model) | Theoretically motivated; typically front-loaded                          |
 
 Each schedule is evaluated for expected cost and variance of execution shortfall.
 
@@ -84,7 +85,7 @@ For each schedule, plotting expected cost (bps) against variance of cost (bps²)
 
 The frontier is indexed by a risk aversion parameter **λ**, which represents how much additional expected cost the trader is willing to pay to reduce variance by one unit. A λ of zero means the trader is indifferent to risk (minimise cost only); a high λ means the trader strongly prefers certainty over cheapness.
 
-This is the central result of the Almgren-Chriss framework and the primary visualisation in FrontierView. It directly answers the question: *given how risk-averse I am, what is the best way to execute this order?*
+This is the central result of the Almgren-Chriss framework and the primary visualisation in FrontierView. It directly answers the question: _given how risk-averse I am, what is the best way to execute this order?_
 
 ---
 
@@ -95,7 +96,6 @@ This is the central result of the Almgren-Chriss framework and the primary visua
 2. **The API** (FastAPI, Python) looks up per-symbol market parameters (ADV, volatility, half-spread), computes temporary and permanent impact for each canonical schedule, and returns the frontier, schedule time series, and impact decomposition.
 
 3. **Three visualisations** are rendered:
-
    - **Efficient frontier chart** — scatter plot of expected cost vs. variance for each schedule, with a λ slider that highlights the risk-aversion-optimal choice
    - **Execution schedule** — participation rate over time bins, showing how aggressively the order is worked throughout the horizon
    - **Impact decomposition** — bar chart breaking total cost into spread, temporary impact, and permanent impact components
@@ -108,7 +108,7 @@ This is the central result of the Almgren-Chriss framework and the primary visua
 
 These are not caveats buried in small print. They are explicit, intentional constraints on an MVP model, and understanding them is part of what the tool is designed to demonstrate.
 
-**Parameters are not calibrated.** η and γ are literature central estimates from Almgren 2005 with material standard errors. Real TCA vendors calibrate these from their own execution data — millions of historical fills matched against contemporaneous market conditions. Without that data, the numbers are indicative, not predictive.
+**Parameters are not calibrated.** η and γ are literature central estimates from Almgren 2005. The standard errors on these estimates are large — 30–50% by conventional inference — meaning the true η could plausibly range from roughly 0.08 to 0.22, and γ similarly. Real TCA vendors calibrate these from their own execution data — millions of historical fills matched against contemporaneous market conditions. Without that data, the numbers are indicative, not predictive. The regime sensitivity panel makes this uncertainty concrete: the spread between calm and stressed frontiers is a reasonable proxy for the parameter uncertainty band.
 
 **Volatility and ADV are static defaults.** Real impact models condition on realised intraday volatility, current order book depth, and time-of-day volume profiles. A 2pm AAPL trade looks very different from an 8am open or a 3:50pm close. FrontierView uses daily averages.
 
@@ -116,9 +116,11 @@ These are not caveats buried in small print. They are explicit, intentional cons
 
 **No intraday volume profile.** Real VWAP execution weights participation by expected intraday volume — higher at open and close, lower mid-day. FrontierView uses flat time bins.
 
-**The optimizer uses canonical schedules, not a full numerical optimiser.** The true Almgren-Chriss optimum with the 0.6 exponent has no closed-form solution (unlike the linear case). Solving it numerically introduces convergence complexity not warranted for a demonstration tool. The canonical schedule menu is an honest alternative: it shows you where real strategies sit on the frontier without pretending to have solved a problem that requires calibrated data to solve meaningfully.
+**Canonical schedules are a deliberate design choice, not a limitation.** The true Almgren-Chriss optimum under the 0.6 power-law exponent has no closed-form solution. A numerical optimiser can find it, but doing so meaningfully requires calibrated parameters — which in turn requires historical fill data this tool intentionally does not have. Presenting a numerically optimised schedule against uncalibrated literature parameters would produce false precision: an exact answer to the wrong problem. The four canonical schedules — TWAP, front-loaded, back-loaded, and the linearised AC optimal — span the practical strategy space used by real execution algorithms. Showing where each sits on the frontier is more informative than a spuriously precise optimum, and more honest about what the model can and cannot claim.
 
 **Variance is variance of execution shortfall, not P&L variance.** The y-axis of the frontier measures uncertainty in execution cost relative to arrival price. It is not total portfolio P&L variance, which would include alpha decay, factor exposures, and other components entirely outside this model's scope.
+
+**Linearity of permanent impact is required by no-arbitrage.** This is required by no-arbitrage (Huberman & Stanzl 2004) and is what makes permanent cost schedule-invariant under the path integral. Switching to a non-linear permanent impact function would break both properties and require a fundamental restructuring of the cost decomposition. The model's parameter values (γ = 0.314 from Almgren 2005, Table 3) are calibrated specifically for the linear form.
 
 ---
 
@@ -130,6 +132,7 @@ FrontierView is a portfolio project. Its purpose is to demonstrate:
 - Understanding of the distinction between temporary and permanent impact, and why it matters for schedule design
 - Ability to implement a non-trivial Python model cleanly, expose it via an API, and connect it to an interactive visualisation
 - Intellectual honesty about model limitations — which, in a real TCA context, is exactly what separates credible analysis from dangerous overconfidence
+- Verification of model correctness via property-based testing of mathematical invariants (schedule-invariance of permanent cost, frontier monotonicity, dimensional consistency of the impact denominators), including a schedule-invariance test that initially failed and surfaced a discretisation error in the path integral accumulator. The fix — switching from forward to midpoint accumulation — is documented in the Engineering Notes.
 
 The natural extensions — real-data calibration, intraday volume profiles, multi-asset support, backtesting against historical fills — are the subject of the synthetic calibration tab, which demonstrates the estimation methodology even without production data.
 
@@ -137,14 +140,14 @@ The natural extensions — real-data calibration, intraday volume profiles, mult
 
 ## References
 
-Almgren, R., & Chriss, N. (2001). Optimal execution of portfolio transactions. *Journal of Risk*, 3(2), 5–39.
+Almgren, R., & Chriss, N. (2001). Optimal execution of portfolio transactions. _Journal of Risk_, 3(2), 5–39.
 
-Almgren, R., Thum, C., Hauptmann, E., & Li, H. (2005). Direct estimation of equity market impact. *Risk*, 18(7), 57–62.
+Almgren, R., Thum, C., Hauptmann, E., & Li, H. (2005). Direct estimation of equity market impact. _Risk_, 18(7), 57–62.
 
-Butz, M., & Oomen, R. (2019). Internalisation by electronic FX spot dealers. *Quantitative Finance*, 19(1), 35–56.
+Butz, M., & Oomen, R. (2019). Internalisation by electronic FX spot dealers. _Quantitative Finance_, 19(1), 35–56.
 
-Gatheral, J. (2010). No-dynamic-arbitrage and market impact. *Quantitative Finance*, 10(7), 749–759.
+Gatheral, J. (2010). No-dynamic-arbitrage and market impact. _Quantitative Finance_, 10(7), 749–759.
 
-Huberman, G., & Stanzl, W. (2004). Price manipulation and quasi-arbitrage. *Econometrica*, 72(4), 1247–1275.
+Huberman, G., & Stanzl, W. (2004). Price manipulation and quasi-arbitrage. _Econometrica_, 72(4), 1247–1275.
 
-Kyle, A. S. (1985). Continuous auctions and insider trading. *Econometrica*, 53(6), 1315–1335.
+Kyle, A. S. (1985). Continuous auctions and insider trading. _Econometrica_, 53(6), 1315–1335.

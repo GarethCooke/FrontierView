@@ -44,18 +44,19 @@ CANON_N_BINS = 8             # 30-minute slots over 4 h
 
 
 def test_cost_magnitude_canonical():
-    """End-to-end cost for the canonical 500k-share / 4h TWAP order is in [4, 7] bps.
+    """End-to-end cost for the canonical 500k-share / 4h TWAP order is in [2.2, 4.5] bps.
 
     Fails if:
-    - Either impact term is missing (cost drops to ~1-2 bps).
+    - Either impact term is missing (cost drops to ~1 bps or below).
     - σ is supplied as percentage (1.55) instead of fractional (0.0155) — cost
       inflates to ~100 bps.
     - The participation-rate denominator uses raw daily ADV instead of
-      ADV / TRADING_HOURS_PER_DAY — cost drops to ~1-2 bps.
+      ADV / TRADING_HOURS_PER_DAY — cost drops to ~1 bps or below.
 
-    Note: the correct implementation produces ~4.4 bps for this parameter set
-    (TWAP participation ≈ 1.35 % of hourly ADV).  The upper bound of 7 bps
-    catches the σ-units bug well before the ~165 bps it would produce.
+    Note: the correct implementation produces ~3.1 bps for this parameter set
+    (TWAP participation ≈ 1.35 % of hourly ADV, linear permanent impact,
+    forward-accumulator shortfall).  The upper bound of 4.5 bps catches the
+    σ-units bug well before the ~165 bps it would produce.
     """
     v_hourly = CANON.adv / TRADING_HOURS_PER_DAY
     dt = CANON_HORIZON / CANON_N_BINS
@@ -63,25 +64,24 @@ def test_cost_magnitude_canonical():
 
     total_cost, _ = compute_cost_variance(sched, CANON_ORDER, "buy", CANON, CANON_HORIZON)
 
-    assert total_cost == pytest.approx(total_cost, rel=0.02)  # confirm it is finite
-    assert 4.0 <= total_cost <= 7.0, (
-        f"Expected cost in [4, 7] bps; got {total_cost:.4f} bps. "
-        "A value below 4 bps usually means an impact term is missing or the "
+    assert 2.2 <= total_cost <= 4.5, (
+        f"Expected cost in [2.2, 4.5] bps; got {total_cost:.4f} bps. "
+        "A value below 2.2 bps usually means an impact term is missing or the "
         "participation rate denominator is wrong. "
-        "A value above 7 bps usually means σ is in percent rather than fractional."
+        "A value above 4.5 bps usually means σ is in percent rather than fractional."
     )
 
 
 # ---------------------------------------------------------------------------
-# 2. Permanent impact — exponent is 0.5, not 1.0
+# 2. Permanent impact — exponent is 1.0, linear
 # ---------------------------------------------------------------------------
 
 
-def test_permanent_impact_square_root_exponent():
-    """Doubling the participation rate multiplies permanent impact by sqrt(2), not 2.
+def test_permanent_impact_linear_exponent():
+    """Doubling the participation rate multiplies permanent impact by 2.0.
 
-    Fails if the exponent is 1.0 (linear): linear would give a ratio of 2.0.
-    The correct square-root law gives 2^0.5 ≈ 1.4142.
+    Permanent impact is linear in participation rate, so doubling v doubles impact.
+    The correct linear law gives 2^1 = 2.0.
 
     Uses arbitrary but round numbers (v_hourly=1000, sigma=0.02) so that the
     ratio depends only on the exponent, not on the scale factors.
@@ -94,11 +94,11 @@ def test_permanent_impact_square_root_exponent():
     impact_2x = permanent_impact(v=200.0, v_hourly=v_hourly, sigma_daily=sigma, gamma=gamma)
 
     ratio = impact_2x / impact_1x
-    expected_ratio = 2.0 ** 0.5  # ≈ 1.4142
+    expected_ratio = 2.0 ** 1.0  # = 2.0
 
     assert ratio == pytest.approx(expected_ratio, rel=0.01), (
-        f"impact(2x) / impact(1x) = {ratio:.4f}; expected sqrt(2) = {expected_ratio:.4f}. "
-        "A ratio of 2.0 indicates a linear (exponent=1) implementation."
+        f"impact(2x) / impact(1x) = {ratio:.4f}; expected 2.0 = {expected_ratio:.4f}. "
+        "A ratio other than 2.0 indicates a non-linear implementation."
     )
 
 
@@ -153,14 +153,13 @@ def test_temporary_impact_half_participation():
 
 
 def test_variance_scales_linearly_with_horizon():
-    """Doubling the horizon doubles the execution-shortfall variance (T/3 law).
+    """Doubling the horizon (with fixed bin count) doubles execution-shortfall variance.
 
-    Uses two TWAP schedules with the same number of bins but different horizons
-    (2 h and 4 h).  The correct T/3 discretisation gives variance ∝ T, so the
-    4 h / 2 h ratio should be exactly 2.0.
+    With fixed n and TWAP weights, variance reduces to n·σ²·(dt/6.5)·constant,
+    so variance ∝ dt ∝ T. The ratio of variances at T=4h vs T=2h should be 2.0.
 
-    Fails if the double-dt bug is present (each term scaled by dt² instead of
-    dt), which gives variance ∝ T², producing a ratio of 4.0 instead of 2.0.
+    Fails (ratio ≈ 4.0) if each variance term is scaled by dt² instead of dt
+    — the double-dt bug, where variance accumulates as T² rather than T.
     """
     v_hourly = CANON.adv / TRADING_HOURS_PER_DAY
     n = CANON_N_BINS  # same bin count for both horizons

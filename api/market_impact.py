@@ -18,10 +18,6 @@ from api.parameters import SYMBOL_PARAMS as SYMBOL_PARAMS, SymbolParams as Symbo
 TRADING_HOURS_PER_DAY = 6.5
 
 
-def _sign(side: str) -> float:
-    return 1.0 if side == "buy" else -1.0
-
-
 # ---------------------------------------------------------------------------
 # Impact functions
 # ---------------------------------------------------------------------------
@@ -46,7 +42,7 @@ def permanent_impact(
     g = γ · σ_daily · (|v| / v_hourly)
     """
     participation = abs(v) / v_hourly
-    return gamma * sigma_daily * (participation**0.5) * 1e4
+    return gamma * sigma_daily * participation * 1e4
 
 
 # ---------------------------------------------------------------------------
@@ -176,21 +172,18 @@ def compute_cost_variance(
 
     temp_cost = perm_cost = shortfall_variance = 0.0
     remaining = order_size
+    cumulative_drift_bps = 0.0
     for _, participation in schedule:
         v = participation * v_hourly
         weight = v * dt / order_size
         temp_cost += (
             temporary_impact(v, v_hourly, params.sigma, params.eta) + params.half_spread
         ) * weight
-        # Permanent impact is always a cost: buyer pays more for remaining shares,
-        # seller receives less.  No sign flip needed — permanent_impact() is positive.
-        perm_cost += (
-            permanent_impact(v, v_hourly, params.sigma, params.gamma)
-            * (remaining - v * dt)
-            / order_size
-            * weight
-        )
-        # Var[shortfall] = σ²_bin × Σ (x_i / X)²; integral discretised per bin
+        # Standard Almgren-Chriss path integral discretised by midpoint rule.
+        # With linear g, this integrates to γσX²/(2·V_hourly), schedule-invariant by construction.
+        own = permanent_impact(v, v_hourly, params.sigma, params.gamma) * dt
+        perm_cost += (cumulative_drift_bps + own / 2) * weight
+        cumulative_drift_bps += own
         shortfall_variance += (sigma_bin * 1e4) ** 2 * (remaining / order_size) ** 2
         remaining -= v * dt
 
