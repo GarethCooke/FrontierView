@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from api.calibration import router as calibration_router
 from api.models import (
     AnalyseRequest,
     AnalyseResponse,
@@ -41,6 +42,7 @@ app.add_middleware(
 )
 
 app.mount("/docs", StaticFiles(directory="docs"), name="docs")
+app.include_router(calibration_router)
 
 
 @app.get("/")
@@ -51,6 +53,11 @@ def root():
 @app.get("/about")
 def about():
     return FileResponse("docs/about.html", media_type="text/html")
+
+
+@app.get("/calibration")
+def calibration():
+    return FileResponse("docs/calibration.html", media_type="text/html")
 
 
 _SCHEDULE_FNS = {

@@ -108,7 +108,7 @@ This is the central result of the Almgren-Chriss framework and the primary visua
 
 These are not caveats buried in small print. They are explicit, intentional constraints on an MVP model, and understanding them is part of what the tool is designed to demonstrate.
 
-**Parameters are not calibrated.** η and γ are literature central estimates from Almgren 2005. The standard errors on these estimates are large — 30–50% by conventional inference — meaning the true η could plausibly range from roughly 0.08 to 0.22, and γ similarly. Real TCA vendors calibrate these from their own execution data — millions of historical fills matched against contemporaneous market conditions. Without that data, the numbers are indicative, not predictive. The regime sensitivity panel makes this uncertainty concrete: the spread between calm and stressed frontiers is a reasonable proxy for the parameter uncertainty band.
+**Parameters are not calibrated.** η and γ are literature central estimates from Almgren 2005. The standard errors on these estimates are large — 30–50% by conventional inference — meaning the true η could plausibly range from roughly 0.08 to 0.22, and γ similarly. Real TCA vendors calibrate these from their own execution data — millions of historical fills matched against contemporaneous market conditions. Without that data, the numbers are indicative, not predictive. The regime sensitivity panel makes this uncertainty concrete: the spread between calm and stressed frontiers is a reasonable proxy for the parameter uncertainty band. The Calibration tab (`/calibration`) demonstrates how WLS re-estimation from fills would work in practice.
 
 **Volatility and ADV are static defaults.** Real impact models condition on realised intraday volatility, current order book depth, and time-of-day volume profiles. A 2pm AAPL trade looks very different from an 8am open or a 3:50pm close. FrontierView uses daily averages.
 
@@ -133,8 +133,9 @@ FrontierView is a portfolio project. Its purpose is to demonstrate:
 - Ability to implement a non-trivial Python model cleanly, expose it via an API, and connect it to an interactive visualisation
 - Intellectual honesty about model limitations — which, in a real TCA context, is exactly what separates credible analysis from dangerous overconfidence
 - Verification of model correctness via property-based testing of mathematical invariants (schedule-invariance of permanent cost, frontier monotonicity, dimensional consistency of the impact denominators), including a schedule-invariance test that initially failed and surfaced a discretisation error in the path integral accumulator. The fix — switching from forward to midpoint accumulation — is documented in the Engineering Notes.
+- Demonstration of the Almgren-Chriss calibration methodology: heteroskedastic WLS parameter estimation on synthetic fills with known ground truth, with calibration scatter plots, parameter recovery bar chart with ±1 SE error bars, and residual Q-Q plots. Available in the Calibration tab (`/calibration`).
 
-The natural extensions — real-data calibration, intraday volume profiles, multi-asset support, backtesting against historical fills — are the subject of the synthetic calibration tab, which demonstrates the estimation methodology even without production data.
+The natural extensions — real-data calibration, intraday volume profiles, multi-asset support, backtesting against historical fills — are the subject of the **Calibration tab** (`/calibration`), which demonstrates the Almgren-Chriss parameter estimation methodology (heteroskedastic WLS, calibration scatter, residual Q-Q) on synthetic fills with known ground-truth parameters, without requiring production data.
 
 ---
 

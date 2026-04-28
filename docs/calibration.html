@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrontierView — Parameter Calibration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────────── */
+    :root {
+      --md-primary: #22d3ee;
+      --md-on-primary: #083344;
+      --md-primary-container: #0e7490;
+      --md-on-primary-cont: #cffafe;
+
+      --md-secondary: #67e8f9;
+      --md-on-secondary: #0c4a6e;
+
+      --md-tertiary: #d6bee4;
+      --md-on-tertiary: #3b2948;
+
+      --md-error: #ffb4ab;
+      --md-error-container: #93000a;
+
+      --md-surface: #0b0f1a;
+      --md-surface-1: #0f172a;
+      --md-surface-2: #1e293b;
+      --md-surface-3: #334155;
+      --md-surface-4: #475569;
+      --md-on-surface: #f1f5f9;
+      --md-on-surface-var: #94a3b8;
+      --md-outline: #64748b;
+      --md-outline-var: rgba(255, 255, 255, 0.08);
+
+      --md-warning: #ffb74d;
+      --md-warning-container: #3d2000;
+      --md-success: #79d47f;
+      --md-success-container: #003910;
+
+      --md-shape-xs: 4px;
+      --md-shape-sm: 8px;
+      --md-shape-md: 12px;
+      --md-shape-lg: 16px;
+      --md-shape-xl: 28px;
+      --md-shape-full: 9999px;
+
+      --md-elev1: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 3px 1px rgba(0, 0, 0, .15);
+      --md-elev2: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+      --md-elev3: 0 4px 8px 3px rgba(0, 0, 0, .15), 0 1px 3px rgba(0, 0, 0, .3);
+    }
+
+    /* ── Reset & base ────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    a {
+      color: var(--md-primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── Navigation rail ─────────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 80px;
+      background: var(--md-surface-1);
+      border-right: 1px solid var(--md-outline-var);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+      gap: 0.25rem;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--md-shape-md);
+      background: var(--md-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      text-decoration: none;
+    }
+
+    .nav-logo .material-icons {
+      color: var(--md-on-primary-cont);
+      font-size: 28px;
+    }
+
+    .nav-item {
+      width: 56px;
+      padding: 0.4rem 0;
+      border-radius: var(--md-shape-full);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+      color: var(--md-on-surface-var);
+      font-size: 10px;
+    }
+
+    .nav-item:hover {
+      background: rgba(34, 211, 238, 0.1);
+      text-decoration: none;
+    }
+
+    .nav-item.active {
+      color: var(--md-primary);
+    }
+
+    .nav-item.active .nav-pill {
+      background: var(--md-primary-container);
+      width: 56px;
+      height: 32px;
+      border-radius: var(--md-shape-full);
+    }
+
+    .nav-pill {
+      width: 56px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-item .material-icons {
+      font-size: 22px;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────────────── */
+    .layout {
+      margin-left: 80px;
+    }
+
+    /* ── Hero ────────────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #001a2e 0%, #0b0f1a 50%, #0a1628 100%);
+      padding: 2.5rem 3rem 2rem;
+      border-bottom: 1px solid var(--md-outline-var);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.07) 0%, transparent 70%);
+    }
+
+    .hero-inner {
+      max-width: 1200px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 300;
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.4rem;
+    }
+
+    .hero h1 span {
+      color: var(--md-primary);
+      font-weight: 400;
+    }
+
+    .hero-sub {
+      font-size: 0.9rem;
+      color: var(--md-on-surface-var);
+      max-width: 560px;
+      line-height: 1.5;
+    }
+
+    /* ── Content wrapper ─────────────────────────────────────────────── */
+    .content {
+      padding: 2rem 3rem;
+      max-width: 1200px;
+    }
+
+    /* ── Prose card ──────────────────────────────────────────────────── */
+    .prose-card {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--md-on-surface-var);
+      line-height: 1.65;
+    }
+
+    .prose-card p {
+      margin-bottom: 0.75rem;
+    }
+
+    .prose-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .prose-card strong {
+      color: var(--md-on-surface);
+      font-weight: 500;
+    }
+
+    .prose-card code {
+      background: var(--md-surface-3);
+      padding: 0.1em 0.4em;
+      border-radius: var(--md-shape-xs);
+      font-size: 0.82em;
+      color: var(--md-primary);
+      font-family: "JetBrains Mono", monospace;
+      border: 1px solid var(--md-outline-var);
+    }
+
+    /* ── Dataset badge ───────────────────────────────────────────────── */
+    .dataset-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(121, 212, 127, 0.10);
+      color: var(--md-success);
+      border: 1px solid rgba(121, 212, 127, 0.28);
+      border-radius: var(--md-shape-full);
+      padding: 0.4rem 1rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      margin-bottom: 1.25rem;
+    }
+
+    .dataset-badge .material-icons {
+      font-size: 15px;
+    }
+
+    /* ── Controls card ───────────────────────────────────────────────── */
+    .controls-card {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .field label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--md-on-surface-var);
+    }
+
+    .field input[type="number"] {
+      background: var(--md-surface-2);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-sm);
+      color: var(--md-on-surface);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.55rem 0.75rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 140px;
+    }
+
+    .field input[type="number"]:focus {
+      border-color: var(--md-primary);
+    }
+
+    .btn-run {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      border-radius: var(--md-shape-md);
+      padding: 0.6rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      height: 38px;
+    }
+
+    .btn-run:hover {
+      opacity: 0.85;
+    }
+
+    .btn-run:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-run .material-icons {
+      font-size: 18px;
+    }
+
+    .btn-regen {
+      background: var(--md-surface-2);
+      color: var(--md-on-surface-var);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-md);
+      padding: 0.6rem 1.25rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+      transition: border-color 0.2s, color 0.2s;
+      height: 38px;
+    }
+
+    .btn-regen:hover {
+      border-color: var(--md-primary);
+      color: var(--md-primary);
+    }
+
+    .btn-regen:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-regen .material-icons {
+      font-size: 18px;
+    }
+
+    /* spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(8, 51, 68, 0.3);
+      border-top-color: var(--md-on-primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Error / empty states ────────────────────────────────────────── */
+    .error-banner {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      background: rgba(255, 180, 171, 0.08);
+      border: 1px solid rgba(255, 180, 171, 0.25);
+      border-radius: var(--md-shape-md);
+      padding: 0.9rem 1rem;
+      font-size: 0.875rem;
+      color: var(--md-error);
+      margin-bottom: 1.5rem;
+    }
+
+    .error-banner .material-icons {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--md-on-surface-var);
+    }
+
+    .empty-state .material-icons {
+      font-size: 48px;
+      color: var(--md-outline);
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+    }
+
+    /* ── Chart cards ─────────────────────────────────────────────────── */
+    .charts-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .chart-card {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1.25rem;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .chart-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--md-shape-sm);
+      background: var(--md-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .chart-icon .material-icons {
+      color: var(--md-on-primary-cont);
+      font-size: 17px;
+    }
+
+    .chart-icon.green {
+      background: var(--md-success-container);
+    }
+
+    .chart-icon.green .material-icons {
+      color: var(--md-success);
+    }
+
+    .chart-icon.amber {
+      background: var(--md-warning-container);
+    }
+
+    .chart-icon.amber .material-icons {
+      color: var(--md-warning);
+    }
+
+    .chart-icon.purple {
+      background: rgba(59, 41, 72, 0.8);
+    }
+
+    .chart-icon.purple .material-icons {
+      color: var(--md-tertiary);
+    }
+
+    .chart-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--md-on-surface);
+    }
+
+    .chart-sub {
+      font-size: 0.75rem;
+      color: var(--md-outline);
+      margin-top: 0.1rem;
+    }
+
+    /* Two side-by-side sub-panels within a chart card */
+    .sub-panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .sub-panel-label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--md-on-surface-var);
+      text-align: center;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.03em;
+    }
+
+    .chart-wrap {
+      position: relative;
+    }
+
+    /* ── Parameter table ─────────────────────────────────────────────── */
+    .table-card {
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--md-outline-var);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead tr {
+      background: var(--md-surface-2);
+    }
+
+    th {
+      padding: 0.65rem 1rem;
+      text-align: left;
+      color: var(--md-on-surface);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    td {
+      padding: 0.65rem 1rem;
+      border-top: 1px solid var(--md-outline-var);
+      color: var(--md-on-surface-var);
+    }
+
+    td:first-child {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      color: var(--md-on-surface);
+    }
+
+    tbody tr:hover {
+      background: rgba(34, 211, 238, 0.04);
+    }
+
+    .val-mono {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      color: var(--md-primary);
+    }
+
+    .val-true {
+      color: var(--md-on-surface-var);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    .val-good {
+      color: var(--md-success);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    .val-warn {
+      color: var(--md-warning);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    /* ── Symbol legend ───────────────────────────────────────────────── */
+    .symbol-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 0.75rem;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      color: var(--md-on-surface-var);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--md-outline-var);
+      margin-left: 80px;
+      padding: 1.25rem 3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--md-outline);
+      font-size: 0.78rem;
+    }
+
+    footer .material-icons {
+      font-size: 15px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .sub-panel-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .nav {
+        display: none;
+      }
+
+      .layout,
+      footer {
+        margin-left: 0;
+      }
+
+      .hero,
+      .content {
+        padding: 1.5rem 1.25rem;
+      }
+
+      .controls-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="nav">
+    <a class="nav-logo" href="/" style="text-decoration:none">
+      <span class="material-icons">show_chart</span>
+    </a>
+    <a class="nav-item" href="/">
+      <div class="nav-pill"><span class="material-icons">analytics</span></div>
+      Tool
+    </a>
+    <a class="nav-item active" href="/calibration">
+      <div class="nav-pill"><span class="material-icons">science</span></div>
+      Calibrate
+    </a>
+    <a class="nav-item" href="/about">
+      <div class="nav-pill"><span class="material-icons">info</span></div>
+      About
+    </a>
+  </nav>
+
+  <div class="layout">
+    <header class="hero">
+      <div class="hero-inner">
+        <h1>Parameter <span>Calibration</span></h1>
+        <p class="hero-sub">Synthetic data with known ground-truth parameters — demonstrates the Almgren-Chriss
+          estimation methodology and verifies parameter recovery via WLS regression.</p>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ── Prose ───────────────────────────────────────────────────── -->
+      <div class="prose-card">
+        <p>This tab demonstrates how η and γ would be estimated from execution data using heteroskedastic
+          weighted least squares, following Almgren (2005) §4. Synthetic fills are generated from the model
+          itself — with <strong>η = 0.142, γ = 0.314</strong> (Almgren 2005, Table 3) as the known ground truth —
+          so recovery accuracy can be verified directly. The fills, noise model, and regression are implemented
+          verbatim from the <code>verify_calibration.py</code> harness in the project root.</p>
+
+        <p>The noise model scales measurement error as a fraction of the price-path diffusion <code>σ·√(T/6.5)</code>,
+          calibrated so that at N = 5,000 orders the standard errors match the Almgren 2005 Table 3 benchmarks:
+          <strong>SE(γ̂)/γ ≈ 13%</strong> and <strong>SE(η̂)/η ≈ 4%</strong>. Standard errors reflect
+          single-realisation uncertainty; seed variation is small and unbiased — the estimator is consistent.
+          With real execution data the procedure would be identical, but η̂ and γ̂ would reflect actual market
+          conditions rather than recovering a known ground truth.
+        </p>
+
+        <p>The three plots below mirror Almgren (2005) Figure 4: calibration scatter with fitted line, parameter
+          recovery bar chart with ±1 SE error bars, and residual Q-Q plots against N(0,1). Well-specified
+          residuals should hug the diagonal — systematic departures indicate model mis-specification.</p>
+      </div>
+
+      <!-- ── Controls ────────────────────────────────────────────────── -->
+      <div class="controls-card">
+        <div class="controls-row">
+          <div class="field">
+            <label>Seed</label>
+            <input type="number" id="seed-input" value="42" min="0" step="1">
+          </div>
+          <div class="field">
+            <label>Number of fills</label>
+            <input type="number" id="n-orders-input" value="5000" min="500" max="50000" step="500">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn-run" id="run-btn" onclick="runCalibration()">
+              <span class="material-icons" id="run-icon">play_arrow</span>
+              <span id="run-label">Run</span>
+            </button>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn-regen" id="regen-btn" onclick="regenerate()">
+              <span class="material-icons">refresh</span>
+              Regenerate
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Error banner ─────────────────────────────────────────────── -->
+      <div class="error-banner" id="error-banner" style="display:none">
+        <span class="material-icons">error_outline</span>
+        <span id="error-text"></span>
+      </div>
+
+      <!-- ── Dataset badge ─────────────────────────────────────────────── -->
+      <div id="badge-row" style="display:none; margin-bottom:1.25rem">
+        <span class="dataset-badge" id="dataset-badge">
+          <span class="material-icons">dataset</span>
+          <span id="badge-text">Synthetic dataset: 5000 fills · seed 42</span>
+        </span>
+      </div>
+
+      <!-- ── Empty state ─────────────────────────────────────────────── -->
+      <div id="empty-state" class="empty-state">
+        <span class="material-icons">science</span>
+        <p>Set a seed and fill count above, then click <strong>Run</strong> to generate synthetic fills and
+          fit the Almgren-Chriss parameters.</p>
+      </div>
+
+      <!-- ── Results ─────────────────────────────────────────────────── -->
+      <div id="results" style="display:none">
+        <div class="charts-stack">
+
+          <!-- Calibration scatter -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-icon"><span class="material-icons">scatter_plot</span></div>
+              <div>
+                <div class="chart-title">Calibration Scatter</div>
+                <div class="chart-sub">Observed cost vs. regressor — fitted line through origin (WLS)</div>
+              </div>
+            </div>
+            <div class="sub-panel-grid">
+              <div>
+                <div class="sub-panel-label">Temporary impact — T<sub>fit</sub> vs σ·(v/6.5V)^0.6</div>
+                <div class="chart-wrap" style="height:280px">
+                  <canvas id="scatter-temp-chart"></canvas>
+                </div>
+              </div>
+              <div>
+                <div class="sub-panel-label">Permanent impact — I<sub>obs</sub> vs σ·X/V</div>
+                <div class="chart-wrap" style="height:280px">
+                  <canvas id="scatter-perm-chart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="symbol-legend" id="symbol-legend"></div>
+          </div>
+
+          <!-- Parameter recovery -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-icon amber"><span class="material-icons">bar_chart</span></div>
+              <div>
+                <div class="chart-title">Parameter Recovery</div>
+                <div class="chart-sub">True vs fitted η and γ — error bars at ±1 SE</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:260px">
+              <canvas id="param-recovery-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Residual Q-Q -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-icon purple"><span class="material-icons">show_chart</span></div>
+              <div>
+                <div class="chart-title">Residual Q-Q — standardised residuals vs N(0,1)</div>
+                <div class="chart-sub">Points should hug the diagonal if residuals are approximately Gaussian</div>
+              </div>
+            </div>
+            <div class="sub-panel-grid">
+              <div>
+                <div class="sub-panel-label">Temporary impact residuals</div>
+                <div class="chart-wrap" style="height:280px">
+                  <canvas id="qq-temp-chart"></canvas>
+                </div>
+              </div>
+              <div>
+                <div class="sub-panel-label">Permanent impact residuals</div>
+                <div class="chart-wrap" style="height:280px">
+                  <canvas id="qq-perm-chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Parameter table -->
+        <div class="table-card" style="margin-top:1.25rem">
+          <div class="table-header">
+            <div class="chart-icon green"><span class="material-icons">table_chart</span></div>
+            <div>
+              <div class="chart-title">Fitted Parameters</div>
+              <div class="chart-sub">WLS point estimates, standard errors, and fit statistics</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>True</th>
+                <th>Fitted</th>
+                <th>SE</th>
+                <th>SE / True</th>
+                <th>R²</th>
+              </tr>
+            </thead>
+            <tbody id="param-table-body"></tbody>
+          </table>
+          <div
+            style="margin-top:0.75rem; padding:0.75rem; background:rgba(34,211,238,0.06); border-left:2px solid var(--md-primary); border-radius:var(--md-shape-xs);">
+            <div style="font-size:0.75rem; line-height:1.5; color:var(--md-on-surface-var);">
+              <span style="font-weight:500; color:var(--md-primary);">Note:</span>&nbsp;Low R² is expected — noise
+              dominates signal at realistic magnitudes, which is precisely what motivates heteroskedastic WLS.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <footer>
+    <span class="material-icons">info</span>
+    FrontierView — Synthetic calibration: parameters recovered from simulated data with known ground truth.
+    <a href="/about" style="margin-left:0.5rem">Model documentation →</a>
+  </footer>
+
+  <script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+    Chart.defaults.font.family = '"Inter", ui-sans-serif, system-ui, sans-serif';
+
+    const SYMBOL_COLORS = {
+      AAPL: { border: '#22d3ee', bg: 'rgba(34,211,238,0.65)' },
+      MSFT: { border: '#ffb74d', bg: 'rgba(255,183,77,0.65)' },
+      GOOGL: { border: '#79d47f', bg: 'rgba(121,212,127,0.65)' },
+      JPM: { border: '#d6bee4', bg: 'rgba(214,190,228,0.65)' },
+      SPY: { border: '#60a5fa', bg: 'rgba(96,165,250,0.65)' },
+    };
+    const SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'JPM', 'SPY'];
+
+    // Chart instances
+    let scatterTempChart = null;
+    let scatterPermChart = null;
+    let paramRecoveryChart = null;
+    let qqTempChart = null;
+    let qqPermChart = null;
+
+    // ── Error bars plugin ──────────────────────────────────────────────
+    const errorBarsPlugin = {
+      id: 'errorBarsPlugin',
+      afterDatasetsDraw(chart) {
+        const { ctx, scales } = chart;
+        const yScale = scales.y;
+        if (!yScale) return;
+
+        chart.data.datasets.forEach((dataset, di) => {
+          if (!dataset.errorBars) return;
+          const meta = chart.getDatasetMeta(di);
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          meta.data.forEach((bar, i) => {
+            const se = dataset.errorBars[i];
+            if (se === undefined || se === null) return;
+            const val = dataset.data[i];
+            const x = bar.x;
+            const yTop = yScale.getPixelForValue(val + se);
+            const yBot = yScale.getPixelForValue(val - se);
+            const cap = 5;
+            ctx.beginPath(); ctx.moveTo(x, yTop); ctx.lineTo(x, yBot); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x - cap, yTop); ctx.lineTo(x + cap, yTop); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x - cap, yBot); ctx.lineTo(x + cap, yBot); ctx.stroke();
+          });
+          ctx.restore();
+        });
+      }
+    };
+
+    // ── UI helpers ────────────────────────────────────────────────────
+    function setLoading(loading) {
+      const runBtn = document.getElementById('run-btn');
+      const regenBtn = document.getElementById('regen-btn');
+      runBtn.disabled = loading;
+      regenBtn.disabled = loading;
+      if (loading)
+      {
+        document.getElementById('run-icon').outerHTML = '<span class="spinner" id="run-icon"></span>';
+        document.getElementById('run-label').textContent = 'Running…';
+      } else
+      {
+        document.getElementById('run-icon').outerHTML =
+          '<span class="material-icons" id="run-icon">play_arrow</span>';
+        document.getElementById('run-label').textContent = 'Run';
+      }
+    }
+
+    function showError(msg) {
+      const b = document.getElementById('error-banner');
+      document.getElementById('error-text').textContent = msg;
+      b.style.display = 'flex';
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').style.display = 'none';
+    }
+
+    function regenerate() {
+      const inp = document.getElementById('seed-input');
+      inp.value = parseInt(inp.value || '42') + 1;
+      runCalibration();
+    }
+
+    // ── Rendering helpers ─────────────────────────────────────────────
+    function buildSymbolLegend() {
+      const el = document.getElementById('symbol-legend');
+      el.innerHTML = SYMBOLS.map(s => `
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${SYMBOL_COLORS[s].border}"></div>
+          ${s}
+        </div>`).join('');
+    }
+
+    function scatterDatasets(points, fittedCurve, xLabel, yLabel) {
+      const bySymbol = {};
+      SYMBOLS.forEach(s => { bySymbol[s] = []; });
+      points.forEach(pt => { if (bySymbol[pt.symbol]) bySymbol[pt.symbol].push({ x: pt.x, y: pt.y }); });
+
+      const symDatasets = SYMBOLS.map(sym => ({
+        label: sym,
+        data: bySymbol[sym],
+        backgroundColor: SYMBOL_COLORS[sym].bg,
+        borderColor: SYMBOL_COLORS[sym].border,
+        borderWidth: 0.5,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      }));
+
+      const lineDataset = {
+        label: 'Fitted',
+        data: fittedCurve.map(p => ({ x: p.x, y: p.y })),
+        showLine: true,
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0,
+      };
+
+      return [...symDatasets, lineDataset];
+    }
+
+    function makeScatterChart(canvasId, datasets, xLabel, yLabel) {
+      const el = document.getElementById(canvasId);
+      return new Chart(el, {
+        type: 'scatter',
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 400 },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  if (ctx.dataset.label === 'Fitted') return null;
+                  return `${ctx.dataset.label}: (${ctx.parsed.x.toExponential(3)}, ${ctx.parsed.y.toExponential(3)})`;
+                }
+              },
+              filter: item => item.dataset.label !== 'Fitted',
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: xLabel, color: '#64748b', font: { size: 10 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { font: { size: 10 } },
+            },
+            y: {
+              type: 'linear',
+              title: { display: true, text: yLabel, color: '#64748b', font: { size: 10 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { font: { size: 10 } },
+            }
+          }
+        }
+      });
+    }
+
+    function makeQQChart(canvasId, theoretical, sample) {
+      const minT = Math.min(...theoretical);
+      const maxT = Math.max(...theoretical);
+      const refLine = [{ x: minT, y: minT }, { x: maxT, y: maxT }];
+
+      // Subsample to 1000 points for rendering performance
+      const step = Math.max(1, Math.floor(theoretical.length / 1000));
+      const pts = [];
+      for (let i = 0; i < theoretical.length; i += step)
+      {
+        pts.push({ x: theoretical[i], y: sample[i] });
+      }
+
+      const el = document.getElementById(canvasId);
+      return new Chart(el, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Residuals',
+              data: pts,
+              backgroundColor: 'rgba(34,211,238,0.4)',
+              borderColor: '#22d3ee',
+              borderWidth: 0.5,
+              pointRadius: 2,
+              pointHoverRadius: 4,
+            },
+            {
+              label: 'y = x',
+              data: refLine,
+              showLine: true,
+              borderColor: 'rgba(255,255,255,0.35)',
+              borderDash: [5, 4],
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 400 },
+          plugins: {
+            legend: { display: false },
+            tooltip: { filter: item => item.dataset.label === 'Residuals' }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: 'Theoretical quantiles', color: '#64748b', font: { size: 10 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { font: { size: 10 } },
+            },
+            y: {
+              type: 'linear',
+              title: { display: true, text: 'Sample quantiles', color: '#64748b', font: { size: 10 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { font: { size: 10 } },
+            }
+          }
+        }
+      });
+    }
+
+    function makeParamRecoveryChart(trueParams, fittedParams) {
+      const eta_true = trueParams.eta;
+      const gamma_true = trueParams.gamma;
+      const eta_hat = fittedParams.eta_hat;
+      const gamma_hat = fittedParams.gamma_hat;
+      const eta_se = fittedParams.eta_se;
+      const gamma_se = fittedParams.gamma_se;
+
+      const el = document.getElementById('param-recovery-chart');
+      return new Chart(el, {
+        type: 'bar',
+        plugins: [errorBarsPlugin],
+        data: {
+          labels: ['η  (temporary)', 'γ  (permanent)'],
+          datasets: [
+            {
+              label: 'True',
+              data: [eta_true, gamma_true],
+              backgroundColor: 'rgba(34,211,238,0.15)',
+              borderColor: '#22d3ee',
+              borderWidth: 2,
+              borderRadius: 4,
+              barPercentage: 0.45,
+              categoryPercentage: 0.8,
+            },
+            {
+              label: 'Fitted ±1 SE',
+              data: [eta_hat, gamma_hat],
+              errorBars: [eta_se, gamma_se],
+              backgroundColor: 'rgba(121,212,127,0.60)',
+              borderColor: '#79d47f',
+              borderWidth: 1.5,
+              borderRadius: 4,
+              barPercentage: 0.45,
+              categoryPercentage: 0.8,
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 400 },
+          plugins: {
+            errorBarsPlugin: {},
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                pointStyle: 'rect',
+                padding: 16,
+                color: '#94a3b8',
+                font: { size: 11 },
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const val = ctx.parsed.y;
+                  const se = ctx.dataset.errorBars ? ctx.dataset.errorBars[ctx.dataIndex] : null;
+                  return se !== null
+                    ? `${ctx.dataset.label}: ${val.toFixed(4)} ± ${se.toFixed(4)}`
+                    : `${ctx.dataset.label}: ${val.toFixed(4)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Coefficient value', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            }
+          }
+        }
+      });
+    }
+
+    function renderResults(data) {
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('badge-row').style.display = 'block';
+      document.getElementById('badge-text').textContent =
+        `Synthetic dataset: ${data.n_orders.toLocaleString()} fills · seed ${data.seed}`;
+
+      const pd = data.plot_data;
+
+      // Destroy existing charts
+      [scatterTempChart, scatterPermChart, paramRecoveryChart, qqTempChart, qqPermChart]
+        .forEach(c => { if (c) c.destroy(); });
+
+      // Calibration scatter
+      scatterTempChart = makeScatterChart(
+        'scatter-temp-chart',
+        scatterDatasets(pd.scatter.temporary, pd.fitted_curves.temporary),
+        'σ · (v / 6.5V)^0.6',
+        'T_fit'
+      );
+      scatterPermChart = makeScatterChart(
+        'scatter-perm-chart',
+        scatterDatasets(pd.scatter.permanent, pd.fitted_curves.permanent),
+        'σ · X/V',
+        'I_obs'
+      );
+
+      // Parameter recovery
+      paramRecoveryChart = makeParamRecoveryChart(data.true_params, data.fitted_params);
+
+      // QQ plots
+      qqTempChart = makeQQChart(
+        'qq-temp-chart',
+        pd.qq.temporary.theoretical,
+        pd.qq.temporary.sample
+      );
+      qqPermChart = makeQQChart(
+        'qq-perm-chart',
+        pd.qq.permanent.theoretical,
+        pd.qq.permanent.sample
+      );
+
+      buildSymbolLegend();
+      renderTable(data);
+    }
+
+    function renderTable(data) {
+      const fp = data.fitted_params;
+      const fs = data.fit_stats;
+      const tp = data.true_params;
+
+      const pull_eta = (fp.eta_hat - tp.eta) / fp.eta_se;
+      const pull_gamma = (fp.gamma_hat - tp.gamma) / fp.gamma_se;
+
+      function seClass(pct) {
+        return pct < 10 ? 'val-good' : pct < 20 ? 'val-mono' : 'val-warn';
+      }
+
+      function pullClass(pull) {
+        const ap = Math.abs(pull);
+        return ap < 1 ? 'val-good' : ap < 2 ? 'val-mono' : 'val-warn';
+      }
+
+      document.getElementById('param-table-body').innerHTML = `
+        <tr>
+          <td>η (temporary)</td>
+          <td class="val-true">${tp.eta.toFixed(4)}</td>
+          <td class="val-mono">${fp.eta_hat.toFixed(4)}</td>
+          <td class="val-mono">${fp.eta_se.toFixed(4)}</td>
+          <td class="${seClass(fp.eta_rel_se_pct)}">${fp.eta_rel_se_pct.toFixed(1)}%</td>
+          <td class="val-mono">${fs.r2_temporary.toFixed(4)}</td>
+        </tr>
+        <tr>
+          <td>γ (permanent)</td>
+          <td class="val-true">${tp.gamma.toFixed(4)}</td>
+          <td class="val-mono">${fp.gamma_hat.toFixed(4)}</td>
+          <td class="val-mono">${fp.gamma_se.toFixed(4)}</td>
+          <td class="${seClass(fp.gamma_rel_se_pct)}">${fp.gamma_rel_se_pct.toFixed(1)}%</td>
+          <td class="val-mono">${fs.r2_permanent.toFixed(4)}</td>
+        </tr>
+      `;
+    }
+
+    // ── Main run ──────────────────────────────────────────────────────
+    async function runCalibration() {
+      const seed = parseInt(document.getElementById('seed-input').value) || 42;
+      const nOrders = parseInt(document.getElementById('n-orders-input').value) || 5000;
+
+      setLoading(true);
+      hideError();
+
+      try
+      {
+        const res = await fetch('/api/calibration/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seed, n_orders: nOrders }),
+        });
+
+        if (!res.ok)
+        {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || res.statusText);
+        }
+
+        const data = await res.json();
+        renderResults(data);
+      } catch (err)
+      {
+        showError(err.message);
+      } finally
+      {
+        setLoading(false);
+      }
+    }
+  </script>
+
+</body>
+
+</html>
