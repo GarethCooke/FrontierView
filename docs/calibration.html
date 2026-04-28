@@ -387,6 +387,19 @@
       font-size: 18px;
     }
 
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .regen-hint {
+      font-size: 0.73rem;
+      color: var(--md-outline);
+      margin-top: 0.75rem;
+      line-height: 1.45;
+    }
+
     /* spinner */
     .spinner {
       width: 16px;
@@ -713,7 +726,8 @@
           weighted least squares, following Almgren (2005) §4. Synthetic fills are generated from the model
           itself — with <strong>η = 0.142, γ = 0.314</strong> (Almgren 2005, Table 3) as the known ground truth —
           so recovery accuracy can be verified directly. The fills, noise model, and regression are implemented
-          verbatim from the <code>verify_calibration.py</code> harness in the project root.</p>
+          verbatim from the <a href="https://github.com/GarethCooke/FrontierView/blob/master/verify_calibration.py"
+            target="_blank" rel="noopener"><code>verify_calibration.py</code></a> harness in the project root.</p>
 
         <p>The noise model scales measurement error as a fraction of the price-path diffusion <code>σ·√(T/6.5)</code>,
           calibrated so that at N = 5,000 orders the standard errors match the Almgren 2005 Table 3 benchmarks:
@@ -741,19 +755,22 @@
           </div>
           <div class="field">
             <label>&nbsp;</label>
-            <button class="btn-run" id="run-btn" onclick="runCalibration()">
-              <span class="material-icons" id="run-icon">play_arrow</span>
-              <span id="run-label">Run</span>
-            </button>
-          </div>
-          <div class="field">
-            <label>&nbsp;</label>
-            <button class="btn-regen" id="regen-btn" onclick="regenerate()">
-              <span class="material-icons">refresh</span>
-              Regenerate
-            </button>
+            <div class="btn-group">
+              <button class="btn-run" id="run-btn" onclick="runCalibration()">
+                <span class="material-icons" id="run-icon">play_arrow</span>
+                <span id="run-label">Run</span>
+              </button>
+              <button class="btn-regen" id="regen-btn" onclick="regenerate()">
+                <span class="material-icons">refresh</span>
+                Regenerate
+              </button>
+            </div>
           </div>
         </div>
+        <p class="regen-hint" id="regen-hint" style="display:none">
+          Hit Regenerate a few times. The fitted values bounce within their error bars — that's what a 4% / 13%
+          standard error actually means.
+        </p>
       </div>
 
       <!-- ── Error banner ─────────────────────────────────────────────── -->
@@ -1204,6 +1221,7 @@
       document.getElementById('empty-state').style.display = 'none';
       document.getElementById('results').style.display = 'block';
       document.getElementById('badge-row').style.display = 'block';
+      document.getElementById('regen-hint').style.display = 'block';
       document.getElementById('badge-text').textContent =
         `Synthetic dataset: ${data.n_orders.toLocaleString()} fills · seed ${data.seed}`;
 
