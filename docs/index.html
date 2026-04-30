@@ -565,6 +565,83 @@
       flex-shrink: 0;
     }
 
+    /* ── Summary card ────────────────────────────────────────────────── */
+    .summary-card {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-lg);
+      padding: 1.1rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .summary-source {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--md-on-surface);
+      min-width: 7rem;
+    }
+
+    .summary-source-sub {
+      font-size: 0.72rem;
+      color: var(--md-on-surface-var);
+      margin-top: 0.2rem;
+    }
+
+    .summary-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .summary-cost-label {
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--md-outline);
+    }
+
+    .summary-cost-value {
+      font-size: 2.6rem;
+      font-weight: 700;
+      color: #22d3ee;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .summary-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.3rem;
+      min-width: 16rem;
+    }
+
+    .summary-breakdown {
+      font-size: 0.78rem;
+      color: var(--md-on-surface-var);
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    .summary-breakdown span {
+      color: var(--md-on-surface);
+    }
+
+    .summary-variance {
+      font-size: 0.78rem;
+      color: var(--md-on-surface-var);
+    }
+
+    .summary-variance span {
+      color: var(--md-on-surface);
+    }
+
     /* ── Footer ──────────────────────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--md-outline-var);
@@ -803,6 +880,22 @@
         <!-- Model params -->
         <div class="params-bar" id="params-bar"></div>
 
+        <!-- Summary card -->
+        <div class="summary-card" id="summary-card">
+          <div>
+            <div class="summary-source" id="summary-source">—</div>
+            <div class="summary-source-sub" id="summary-source-sub"></div>
+          </div>
+          <div class="summary-center">
+            <div class="summary-cost-label">Total execution cost</div>
+            <div class="summary-cost-value" id="summary-total">—</div>
+          </div>
+          <div class="summary-right">
+            <div class="summary-breakdown" id="summary-breakdown"></div>
+            <div class="summary-variance" id="summary-variance"></div>
+          </div>
+        </div>
+
         <!-- Charts -->
         <div class="charts-grid">
 
@@ -940,6 +1033,7 @@
       {
         renderSchedule(_cachedResults[st].schedule, _cachedHorizon);
         renderDecomp(_cachedResults[st].impact_decomp, st);
+        renderSummaryFromSchedule(st);
       }
     }
 
@@ -1022,6 +1116,7 @@
       renderFrontier(main.frontier, allResults, horizonHours, orderSize);
       renderSchedule(main.schedule, horizonHours);
       renderDecomp(main.impact_decomp, _currentScheduleType);
+      renderSummaryFromSchedule(_currentScheduleType);
       if (regimeData) renderRegimeFrontier(regimeData);
     }
 
@@ -1138,6 +1233,7 @@
       document.getElementById('lambda-val').textContent = _fmtLambda(pt.lambda_val);
       document.getElementById('lambda-info').innerHTML =
         `At λ = ${_fmtLambda(pt.lambda_val)}: expected cost = <strong>${pt.expected_cost_bps.toFixed(3)} bps</strong>, variance = <strong>${Math.round(pt.variance_bps2).toLocaleString()} bps²</strong>`;
+      renderSummaryFromFrontier(idx);
 
       const n = _frontier.length;
       frontierChart.data.datasets[0].pointRadius      = Array.from({length: n}, (_, i) => i === idx ? 7 : 2);
@@ -1161,6 +1257,32 @@
       updateSlider(mid);
 
       slider.addEventListener('input', () => updateSlider(+slider.value));
+    }
+
+    function renderSummaryFromSchedule(st) {
+      if (!_cachedResults) return;
+      const d = _cachedResults[st].impact_decomp;
+      const total = d.temporary_bps + d.permanent_bps + d.spread_bps;
+      document.getElementById('summary-source').textContent = SCHEDULE_LABELS[st];
+      document.getElementById('summary-source-sub').textContent = '';
+      document.getElementById('summary-total').textContent = total.toFixed(3) + ' bps';
+      document.getElementById('summary-breakdown').innerHTML =
+        `Spread <span>${d.spread_bps.toFixed(3)}</span> · ` +
+        `Temp <span>${d.temporary_bps.toFixed(3)}</span> · ` +
+        `Perm <span>${d.permanent_bps.toFixed(3)}</span>`;
+      document.getElementById('summary-variance').innerHTML =
+        `Variance <span>${Math.round(d.variance_bps2).toLocaleString()} bps²</span>`;
+    }
+
+    function renderSummaryFromFrontier(idx) {
+      if (!_frontier.length) return;
+      const pt = _frontier[idx];
+      document.getElementById('summary-source').textContent = 'AC2001 schedule family';
+      document.getElementById('summary-source-sub').textContent = 'λ = ' + _fmtLambda(pt.lambda_val);
+      document.getElementById('summary-total').textContent = pt.expected_cost_bps.toFixed(3) + ' bps';
+      document.getElementById('summary-breakdown').innerHTML = '';
+      document.getElementById('summary-variance').innerHTML =
+        `Variance <span>${Math.round(pt.variance_bps2).toLocaleString()} bps²</span>`;
     }
 
     function renderSchedule(schedule, horizonHours) {
