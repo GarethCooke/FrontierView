@@ -58,7 +58,7 @@ def test_temporary_impact_zero_participation():
 
 
 # ---------------------------------------------------------------------------
-# compute_cost_variance: half-spread floor and buy/sell symmetry
+# compute_cost_variance: half-spread floor
 # ---------------------------------------------------------------------------
 
 _AAPL = SYMBOL_PARAMS["AAPL"]
@@ -75,17 +75,5 @@ def test_spread_floor():
     Weights sum to 1.0, so the spread contribution equals params.half_spread exactly.
     Total cost must be at least that floor.
     """
-    cost, _ = compute_cost_variance(_TWAP, _ORDER, "buy", _AAPL, _HORIZON)
+    cost, _ = compute_cost_variance(_TWAP, _ORDER, _AAPL, _HORIZON)
     assert cost >= _AAPL.half_spread
-
-
-def test_buy_sell_same_cost():
-    """Buy and sell must produce identical positive total cost.
-
-    compute_cost_variance treats impact as a cost in both directions;
-    the side parameter has no effect on the magnitude.
-    """
-    cost_buy, _ = compute_cost_variance(_TWAP, _ORDER, "buy", _AAPL, _HORIZON)
-    cost_sell, _ = compute_cost_variance(_TWAP, _ORDER, "sell", _AAPL, _HORIZON)
-    assert cost_buy > 0
-    assert cost_buy == cost_sell

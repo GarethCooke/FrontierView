@@ -272,37 +272,6 @@
       border-color: var(--md-primary);
     }
 
-    /* direction toggle */
-    .dir-toggle {
-      display: flex;
-      background: var(--md-surface-2);
-      border: 1px solid var(--md-outline-var);
-      border-radius: var(--md-shape-sm);
-      overflow: hidden;
-    }
-
-    .dir-toggle input[type="radio"] {
-      display: none;
-    }
-
-    .dir-toggle label {
-      flex: 1;
-      text-align: center;
-      padding: 0.55rem 0.5rem;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--md-on-surface-var);
-      transition: background 0.15s, color 0.15s;
-      text-transform: none;
-      letter-spacing: 0;
-    }
-
-    .dir-toggle input[type="radio"]:checked+label {
-      background: var(--md-primary-container);
-      color: var(--md-on-primary-cont);
-    }
-
     .btn-analyse {
       background: var(--md-primary);
       color: var(--md-on-primary);
@@ -780,16 +749,6 @@
           </div>
 
           <div class="field">
-            <label>Direction</label>
-            <div class="dir-toggle">
-              <input type="radio" name="side" id="side-buy" value="buy" checked>
-              <label for="side-buy">Buy</label>
-              <input type="radio" name="side" id="side-sell" value="sell">
-              <label for="side-sell">Sell</label>
-            </div>
-          </div>
-
-          <div class="field">
             <label>Horizon (hours)</label>
             <select id="horizon">
               <option value="0.5">0.5 h</option>
@@ -989,13 +948,12 @@
     async function runAnalysis() {
       const symbol = document.getElementById('symbol').value;
       const orderSize = parseFloat(document.getElementById('order-size').value);
-      const side = document.querySelector('input[name="side"]:checked').value;
       const horizon = parseFloat(document.getElementById('horizon').value);
 
       setLoading(true);
       hideError();
 
-      const base = { symbol, order_size: orderSize, side, horizon_hours: horizon };
+      const base = { symbol, order_size: orderSize, horizon_hours: horizon };
 
       try
       {

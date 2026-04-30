@@ -62,7 +62,7 @@ def test_cost_magnitude_canonical():
     dt = CANON_HORIZON / CANON_N_BINS
     sched = schedule_twap(CANON_N_BINS, CANON_ORDER, v_hourly, dt)
 
-    total_cost, _ = compute_cost_variance(sched, CANON_ORDER, "buy", CANON, CANON_HORIZON)
+    total_cost, _ = compute_cost_variance(sched, CANON_ORDER, CANON, CANON_HORIZON)
 
     assert 2.2 <= total_cost <= 4.5, (
         f"Expected cost in [2.2, 4.5] bps; got {total_cost:.4f} bps. "
@@ -167,8 +167,8 @@ def test_variance_scales_linearly_with_horizon():
     sched_2h = schedule_twap(n, CANON_ORDER, v_hourly, 2.0 / n)
     sched_4h = schedule_twap(n, CANON_ORDER, v_hourly, 4.0 / n)
 
-    _, var_2h = compute_cost_variance(sched_2h, CANON_ORDER, "buy", CANON, 2.0)
-    _, var_4h = compute_cost_variance(sched_4h, CANON_ORDER, "buy", CANON, 4.0)
+    _, var_2h = compute_cost_variance(sched_2h, CANON_ORDER, CANON, 2.0)
+    _, var_4h = compute_cost_variance(sched_4h, CANON_ORDER, CANON, 4.0)
 
     ratio = var_4h / var_2h
 

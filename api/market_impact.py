@@ -7,7 +7,6 @@ Key conventions
 - v_hourly    : ADV in shares / hour  (= daily ADV / 6.5)
 - sigma       : daily volatility (fractional); scaled to intraday via sqrt(dt/6.5)
 - horizon     : trading horizon in hours; binned into integer half-hour slots
-- side        : "buy" or "sell" — affects sign of permanent impact on remaining inventory
 - All costs   : expressed in basis points (bps) of notional
 """
 
@@ -156,7 +155,6 @@ def schedule_ac_linear(
 def compute_cost_variance(
     schedule: list[tuple[int, float]],
     order_size: float,
-    side: str,
     params: SymbolParams,
     horizon_hours: float,
 ) -> tuple[float, float]:
@@ -192,7 +190,6 @@ def compute_cost_variance(
 
 def generate_frontier(
     order_size: float,
-    side: str,
     horizon_hours: float,
     params: SymbolParams,
     n_bins: int = 13,
@@ -203,7 +200,7 @@ def generate_frontier(
     for lam in lambdas:
         sched = schedule_ac_linear(n_bins, order_size, horizon_hours, params, lam)
         cost, var = compute_cost_variance(
-            sched, order_size, side, params, horizon_hours
+            sched, order_size, params, horizon_hours
         )
         frontier.append(
             {

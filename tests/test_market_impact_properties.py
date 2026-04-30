@@ -374,7 +374,7 @@ def test_zero_order_limit(params):
     expected_cost = params.half_spread + temporary_impact(v, v_hourly, params.sigma, params.eta) + own / 2
 
     sched = schedule_twap(n_bins, order_size, v_hourly, dt)
-    total_cost, _ = compute_cost_variance(sched, order_size, "buy", params, horizon_hours)
+    total_cost, _ = compute_cost_variance(sched, order_size, params, horizon_hours)
 
     assert total_cost == pytest.approx(expected_cost, rel=1e-9), (
         f"Single-bin cost {total_cost:.9f} ≠ half_spread + temp_impact "
@@ -418,7 +418,7 @@ def test_regime_ordering(params, order_size, horizon_hours, n_bins):
 
     def _cv(p):
         sched = schedule_ac_linear(n_bins, order_size, horizon_hours, p, lambda_risk=1e-6)
-        return compute_cost_variance(sched, order_size, "buy", p, horizon_hours)
+        return compute_cost_variance(sched, order_size, p, horizon_hours)
 
     calm_cost, calm_var = _cv(calm)
     normal_cost, normal_var = _cv(params)
@@ -458,7 +458,7 @@ def test_frontier_monotonicity(params, order_size, horizon_hours):
     the falling perm cost outweighs the rising temp cost, producing a dip in
     the total-cost frontier.
     """
-    frontier = generate_frontier(order_size, "buy", horizon_hours, params)
+    frontier = generate_frontier(order_size, horizon_hours, params)
     frontier.sort(key=lambda x: x["lambda_val"])
 
     for i in range(1, len(frontier)):

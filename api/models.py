@@ -5,7 +5,6 @@ from pydantic import BaseModel
 class AnalyseRequest(BaseModel):
     symbol: str
     order_size: float
-    side: Literal["buy", "sell"]
     horizon_hours: float
     schedule_type: Literal["twap", "front_loaded", "back_loaded", "ac_linear"]
 

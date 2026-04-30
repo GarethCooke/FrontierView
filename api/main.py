@@ -98,7 +98,6 @@ def _build_schedule(raw: list[tuple[int, float]], ctx: _BinCtx) -> list[Schedule
 def _decompose_impact(
     raw: list[tuple[int, float]],
     ctx: _BinCtx,
-    side: str,
     params: SymbolParams,
     horizon_hours: float,
 ) -> ImpactDecomp:
@@ -113,7 +112,7 @@ def _decompose_impact(
         own = permanent_impact(v, ctx.v_hourly, params.sigma, params.gamma) * ctx.dt
         perm_cost += (cumulative_drift_bps + own / 2) * weight
         cumulative_drift_bps += own
-    _, variance = compute_cost_variance(raw, ctx.order_size, side, params, horizon_hours)
+    _, variance = compute_cost_variance(raw, ctx.order_size, params, horizon_hours)
     return ImpactDecomp(
         temporary_bps=round(temp_cost, 4),
         permanent_bps=round(perm_cost, 4),
@@ -157,7 +156,7 @@ def regime_frontier(request: AnalyseRequest) -> RegimeFrontierResponse:
             eta=base.eta * mults["eta"],
             gamma=base.gamma * mults["gamma"],
         )
-        pts = generate_frontier(request.order_size, request.side, request.horizon_hours, scaled, n_bins)
+        pts = generate_frontier(request.order_size, request.horizon_hours, scaled, n_bins)
         frontiers[regime] = [
             RegimeFrontierPoint(expected_cost_bps=p["expected_cost_bps"], variance_bps2=p["variance_bps2"])
             for p in pts
@@ -200,14 +199,14 @@ def analyse(request: AnalyseRequest) -> AnalyseResponse:
             variance_bps2=pt["variance_bps2"],
         )
         for pt in generate_frontier(
-            request.order_size, request.side, request.horizon_hours, params, n_bins,
+            request.order_size, request.horizon_hours, params, n_bins,
         )
     ]
 
     return AnalyseResponse(
         frontier=frontier_out,
         schedule=_build_schedule(raw_schedule, ctx),
-        impact_decomp=_decompose_impact(raw_schedule, ctx, request.side, params, request.horizon_hours),
+        impact_decomp=_decompose_impact(raw_schedule, ctx, params, request.horizon_hours),
         model_params=ModelParams(
             eta=params.eta,
             gamma=params.gamma,
