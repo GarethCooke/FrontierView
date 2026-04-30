@@ -104,17 +104,15 @@ def _decompose_impact(
 ) -> ImpactDecomp:
     """Compute cost components and shortfall variance for the schedule."""
     temp_cost = spread_cost = perm_cost = 0.0
-    remaining = ctx.order_size
+    cumulative_drift_bps = 0.0
     for _, p in raw:
         v = p * ctx.v_hourly
         weight = v * ctx.dt / ctx.order_size
         temp_cost += temporary_impact(v, ctx.v_hourly, params.sigma, params.eta) * weight
         spread_cost += params.half_spread * weight
-        perm_cost += (
-            permanent_impact(v, ctx.v_hourly, params.sigma, params.gamma)
-            * (remaining / ctx.order_size) * weight
-        )
-        remaining -= v * ctx.dt
+        own = permanent_impact(v, ctx.v_hourly, params.sigma, params.gamma) * ctx.dt
+        perm_cost += (cumulative_drift_bps + own / 2) * weight
+        cumulative_drift_bps += own
     _, variance = compute_cost_variance(raw, ctx.order_size, side, params, horizon_hours)
     return ImpactDecomp(
         temporary_bps=round(temp_cost, 4),
