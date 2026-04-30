@@ -481,6 +481,81 @@
       opacity: 0.7;
     }
 
+    .lambda-slider-wrap {
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--md-outline-var);
+    }
+
+    .lambda-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .lambda-slider-row .material-icons {
+      font-size: 16px;
+      color: #22d3ee;
+      opacity: 0.8;
+    }
+
+    .lambda-label {
+      font-size: 0.8rem;
+      color: var(--md-on-surface-var);
+      flex: 1;
+    }
+
+    .lambda-val {
+      font-size: 0.8rem;
+      font-family: 'Roboto Mono', monospace;
+      color: #22d3ee;
+      min-width: 6ch;
+      text-align: right;
+    }
+
+    .lambda-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--md-outline-var);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .lambda-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #22d3ee;
+      cursor: pointer;
+    }
+
+    .lambda-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #22d3ee;
+      cursor: pointer;
+      border: none;
+    }
+
+    .lambda-info {
+      font-size: 0.78rem;
+      color: var(--md-on-surface-var);
+      margin-top: 0.5rem;
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    .lambda-info strong {
+      color: var(--md-on-surface);
+    }
+
     /* ── Empty / error states ────────────────────────────────────────── */
     #results {
       display: none;
@@ -788,6 +863,15 @@
               <span class="material-icons">info</span>
               The AC2001 schedule family is optimal under linear impact (h(v) = ηv) but sub-optimal under the 0.6 power law used here. The labelled points sit below it — that's the cost of model linearisation, not a bug.
             </p>
+            <div class="lambda-slider-wrap" id="lambda-slider-wrap" style="display:none">
+              <div class="lambda-slider-row">
+                <span class="material-icons">tune</span>
+                <span class="lambda-label">Risk aversion λ</span>
+                <span class="lambda-val" id="lambda-val">—</span>
+              </div>
+              <input type="range" id="lambda-slider" class="lambda-slider" min="0" max="16" value="8" step="1">
+              <p class="lambda-info" id="lambda-info"></p>
+            </div>
           </div>
 
           <div class="chart-card">
@@ -854,6 +938,7 @@
     let scheduleChart = null;
     let decompChart = null;
     let regimeChart = null;
+    let _frontier = [];
 
     // ── Schedule dropdown ────────────────────────────────────────────
     let _currentScheduleType = 'ac_linear';
@@ -998,6 +1083,7 @@
     }
 
     function renderFrontier(frontier, allResults, horizonHours, orderSize) {
+      _frontier = frontier;
       const curveData = frontier.map(pt => ({ x: pt.variance_bps2, y: pt.expected_cost_bps }));
 
       // One scatter dataset per canonical schedule
@@ -1079,6 +1165,44 @@
           }
         }
       });
+
+      initSlider();
+    }
+
+    function _fmtLambda(v) {
+      const s = v.toPrecision(2);
+      return s.includes('e') ? v.toExponential(1) : s;
+    }
+
+    function updateSlider(idx) {
+      if (!_frontier.length || !frontierChart) return;
+      const pt = _frontier[idx];
+      document.getElementById('lambda-val').textContent = _fmtLambda(pt.lambda_val);
+      document.getElementById('lambda-info').innerHTML =
+        `At λ = ${_fmtLambda(pt.lambda_val)}: expected cost = <strong>${pt.expected_cost_bps.toFixed(3)} bps</strong>, variance = <strong>${Math.round(pt.variance_bps2).toLocaleString()} bps²</strong>`;
+
+      const n = _frontier.length;
+      frontierChart.data.datasets[0].pointRadius      = Array.from({length: n}, (_, i) => i === idx ? 7 : 2);
+      frontierChart.data.datasets[0].pointHoverRadius = Array.from({length: n}, (_, i) => i === idx ? 9 : 4);
+      frontierChart.data.datasets[0].pointBackgroundColor = Array.from({length: n}, (_, i) =>
+        i === idx ? '#f97316' : 'rgba(34,211,238,0.5)');
+      frontierChart.data.datasets[0].pointBorderColor = Array.from({length: n}, (_, i) =>
+        i === idx ? '#f97316' : '#22d3ee');
+      frontierChart.update('none');
+    }
+
+    function initSlider() {
+      const wrap   = document.getElementById('lambda-slider-wrap');
+      const slider = document.getElementById('lambda-slider');
+      if (!_frontier.length) { wrap.style.display = 'none'; return; }
+
+      slider.max = _frontier.length - 1;
+      const mid = Math.floor(_frontier.length / 2);
+      slider.value = mid;
+      wrap.style.display = 'block';
+      updateSlider(mid);
+
+      slider.addEventListener('input', () => updateSlider(+slider.value));
     }
 
     function renderSchedule(schedule, horizonHours) {
