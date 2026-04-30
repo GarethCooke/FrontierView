@@ -2,8 +2,10 @@
 
 import numpy as np
 from scipy import stats
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, Field
+
+from api.rate_limit import limiter
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Ground truth (Almgren 2005, Table 3)
@@ -186,12 +188,13 @@ router = APIRouter()
 
 class CalibrationRequest(BaseModel):
     seed: int = 42
-    n_orders: int = 5000
+    n_orders: int = Field(5000, ge=100, le=20000)
 
 
 @router.post("/api/calibration/run")
-def run_calibration(request: CalibrationRequest) -> dict:
-    fills = generate_fills(request.seed, request.n_orders)
+@limiter.limit("10/minute")
+def run_calibration(request: Request, payload: CalibrationRequest) -> dict:
+    fills = generate_fills(payload.seed, payload.n_orders)
     fit = fit_parameters(fills)
 
     symbols = fills["symbols"]
@@ -227,8 +230,8 @@ def run_calibration(request: CalibrationRequest) -> dict:
     gamma_se = float(fit["gamma_se"])
 
     return {
-        "seed": request.seed,
-        "n_orders": request.n_orders,
+        "seed": payload.seed,
+        "n_orders": payload.n_orders,
         "true_params": {"eta": ETA_TRUE, "gamma": GAMMA_TRUE},
         "fitted_params": {
             "eta_hat": eta_hat,
@@ -241,7 +244,7 @@ def run_calibration(request: CalibrationRequest) -> dict:
         "fit_stats": {
             "r2_temporary": float(fit["r2_temp"]),
             "r2_permanent": float(fit["r2_perm"]),
-            "n_obs": request.n_orders,
+            "n_obs": payload.n_orders,
         },
         "plot_data": {
             "scatter": {

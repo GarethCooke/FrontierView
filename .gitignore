@@ -8,3 +8,12 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.DS_Store
+
+# Private notes — never commit
+frontierview_interview_prep.md
+frontierview_interview_prep.html
+*_interview_prep.*
+*_interview-prep.*
+/private/
+/notes/
