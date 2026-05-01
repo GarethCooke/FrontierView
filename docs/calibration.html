@@ -12,7 +12,7 @@
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script>
-    (function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.classList.add(t);}catch(e){document.documentElement.classList.add('dark');}})();
+    (function () { try { var t = localStorage.getItem('theme') || 'dark'; document.documentElement.classList.add(t); } catch (e) { document.documentElement.classList.add('dark'); } })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
@@ -87,6 +87,7 @@
     html {
       scroll-behavior: smooth;
       transition: background-color 0.3s ease, color 0.3s ease;
+      scrollbar-gutter: stable;
     }
 
     body {
@@ -98,7 +99,12 @@
       transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
       font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
     }
 
@@ -133,8 +139,16 @@
       justify-content: space-between;
     }
 
-    .topnav-logo { line-height: 0; text-decoration: none; }
-    .topnav-logo img { height: 88px; width: auto; filter: brightness(1.1); }
+    .topnav-logo {
+      line-height: 0;
+      text-decoration: none;
+    }
+
+    .topnav-logo img {
+      height: 88px;
+      width: auto;
+      filter: brightness(1.1);
+    }
 
     .topnav-desktop {
       display: flex;
@@ -150,7 +164,7 @@
       height: 32px;
       border-radius: 7px;
       background: oklch(65% 0.18 222 / 0.1);
-      transition: left 0.4s cubic-bezier(0.16,1,0.3,1), width 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.2s;
+      transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1), width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
       pointer-events: none;
       opacity: 0;
     }
@@ -167,8 +181,15 @@
       transition: color 0.15s;
     }
 
-    .topnav-link.active { color: var(--md-primary); font-weight: 500; }
-    .topnav-link:hover { text-decoration: none; color: var(--md-on-surface); }
+    .topnav-link.active {
+      color: var(--md-primary);
+      font-weight: 500;
+    }
+
+    .topnav-link:hover {
+      text-decoration: none;
+      color: var(--md-on-surface);
+    }
 
     .topnav-divider {
       width: 1px;
@@ -191,7 +212,11 @@
       align-items: center;
     }
 
-    .topnav-mobile { display: none; align-items: center; gap: 4px; }
+    .topnav-mobile {
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
 
     .topnav-mobile-menu {
       border-top: 1px solid var(--md-outline-var);
@@ -218,8 +243,13 @@
     }
 
     @media (max-width: 700px) {
-      .topnav-desktop { display: none; }
-      .topnav-mobile { display: flex; }
+      .topnav-desktop {
+        display: none;
+      }
+
+      .topnav-mobile {
+        display: flex;
+      }
     }
 
     /* ── Left nav rail ───────────────────────────────────────────────── */
@@ -268,16 +298,26 @@
       background: oklch(65% 0.18 222 / 0.1);
     }
 
-    .nav-item svg { flex-shrink: 0; }
+    .nav-item svg {
+      flex-shrink: 0;
+    }
 
-    @media (max-width: 700px) { .nav { display: none; } }
+    @media (max-width: 700px) {
+      .nav {
+        display: none;
+      }
+    }
 
     /* ── Main layout ─────────────────────────────────────────────────── */
     .layout {
       margin-left: 80px;
     }
 
-    @media (max-width: 700px) { .layout { margin-left: 0; } }
+    @media (max-width: 700px) {
+      .layout {
+        margin-left: 0;
+      }
+    }
 
     /* ── Hero ────────────────────────────────────────────────────────── */
     .hero {
@@ -766,6 +806,7 @@
     }
 
     @media (max-width: 700px) {
+
       .hero,
       .content {
         padding: 1.5rem 1.25rem;
@@ -799,8 +840,12 @@
         <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
           <span class="theme-icon"></span>
         </button>
-        <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
-          <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()"
+          aria-label="Toggle menu">
+          <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
         </button>
       </div>
     </div>
@@ -813,15 +858,27 @@
 
   <nav class="nav" aria-label="FrontierView navigation">
     <a class="nav-item" href="/" aria-label="Tool">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
       Tool
     </a>
     <a class="nav-item active" href="/calibration" aria-label="Calibrate">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+      </svg>
       Calibrate
     </a>
     <a class="nav-item" href="/about" aria-label="About">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
       About
     </a>
   </nav>
@@ -1030,13 +1087,14 @@
     const MOON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
 
     function getTheme() {
-      try {
+      try
+      {
         const stored = localStorage.getItem('theme');
         if (stored) return stored;
         const param = new URLSearchParams(window.location.search).get('theme');
         if (param === 'light' || param === 'dark') return param;
         return 'dark';
-      } catch(e) { return 'dark'; }
+      } catch (e) { return 'dark'; }
     }
 
     function applyTheme(t) {
@@ -1045,7 +1103,7 @@
       document.querySelectorAll('.theme-icon').forEach(el => {
         el.innerHTML = t === 'dark' ? SUN_SVG : MOON_SVG;
       });
-      try { localStorage.setItem('theme', t); } catch(e) {}
+      try { localStorage.setItem('theme', t); } catch (e) { }
       updateChartColors();
     }
 

@@ -11,8 +11,12 @@
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInPage()"></script>
   <script>
-    (function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.classList.add(t);}catch(e){document.documentElement.classList.add('dark');}})();
+    (function () { try { var t = localStorage.getItem('theme') || 'dark'; document.documentElement.classList.add(t); } catch (e) { document.documentElement.classList.add('dark'); } })();
   </script>
   <style>
     /* ── Design tokens — garethcooke.com palette ─────────────────────── */
@@ -86,7 +90,7 @@
     html {
       scroll-behavior: smooth;
       transition: background-color 0.3s ease, color 0.3s ease;
-    }
+        scrollbar-gutter: stable;  }
 
     body {
       font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -97,7 +101,12 @@
       transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
       font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
     }
 
@@ -137,8 +146,16 @@
       justify-content: space-between;
     }
 
-    .topnav-logo { line-height: 0; text-decoration: none; }
-    .topnav-logo img { height: 88px; width: auto; filter: brightness(1.1); }
+    .topnav-logo {
+      line-height: 0;
+      text-decoration: none;
+    }
+
+    .topnav-logo img {
+      height: 88px;
+      width: auto;
+      filter: brightness(1.1);
+    }
 
     .topnav-desktop {
       display: flex;
@@ -154,7 +171,7 @@
       height: 32px;
       border-radius: 7px;
       background: oklch(65% 0.18 222 / 0.1);
-      transition: left 0.4s cubic-bezier(0.16,1,0.3,1), width 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.2s;
+      transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1), width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
       pointer-events: none;
       opacity: 0;
     }
@@ -171,8 +188,15 @@
       transition: color 0.15s;
     }
 
-    .topnav-link.active { color: var(--md-primary); font-weight: 500; }
-    .topnav-link:hover { text-decoration: none; color: var(--md-on-surface); }
+    .topnav-link.active {
+      color: var(--md-primary);
+      font-weight: 500;
+    }
+
+    .topnav-link:hover {
+      text-decoration: none;
+      color: var(--md-on-surface);
+    }
 
     .topnav-divider {
       width: 1px;
@@ -195,7 +219,11 @@
       align-items: center;
     }
 
-    .topnav-mobile { display: none; align-items: center; gap: 4px; }
+    .topnav-mobile {
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
 
     .topnav-mobile-menu {
       border-top: 1px solid var(--md-outline-var);
@@ -222,8 +250,13 @@
     }
 
     @media (max-width: 700px) {
-      .topnav-desktop { display: none; }
-      .topnav-mobile { display: flex; }
+      .topnav-desktop {
+        display: none;
+      }
+
+      .topnav-mobile {
+        display: flex;
+      }
     }
 
     /* ── Left nav rail ───────────────────────────────────────────────── */
@@ -272,7 +305,9 @@
       background: oklch(65% 0.18 222 / 0.1);
     }
 
-    .nav-item svg { flex-shrink: 0; }
+    .nav-item svg {
+      flex-shrink: 0;
+    }
 
     .nav-section-divider {
       width: 32px;
@@ -313,16 +348,26 @@
       opacity: 1;
     }
 
-    .nav-section-item svg { flex-shrink: 0; }
+    .nav-section-item svg {
+      flex-shrink: 0;
+    }
 
-    @media (max-width: 700px) { .nav { display: none; } }
+    @media (max-width: 700px) {
+      .nav {
+        display: none;
+      }
+    }
 
     /* ── Main layout ─────────────────────────────────────────────────── */
     .layout {
       margin-left: 80px;
     }
 
-    @media (max-width: 700px) { .layout { margin-left: 0; } }
+    @media (max-width: 700px) {
+      .layout {
+        margin-left: 0;
+      }
+    }
 
     /* ── Hero ────────────────────────────────────────────────────────── */
     .hero {
@@ -736,18 +781,22 @@
       font-weight: 500;
     }
 
-    .formula-block pre {
-      padding: 1.25rem 1.5rem;
+    /* KaTeX formula display area */
+    .formula-body {
+      padding: 1.75rem 1.5rem;
       text-align: center;
-      font-size: 1rem;
-      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .formula-block code {
+    /* Override KaTeX colours for dark background */
+    .formula-body .katex {
       color: #e2e8f0;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 1rem;
+      font-size: 1.25em;
     }
+
+    /* In light mode, KaTeX still looks fine on the dark formula bg — keep it */
 
     /* ── Code blocks ─────────────────────────────────────────────────── */
     .code-block {
@@ -1011,6 +1060,7 @@
 
     /* ── Responsive ──────────────────────────────────────────────────── */
     @media (max-width: 700px) {
+
       .hero,
       .content {
         padding: 2rem 1.25rem;
@@ -1045,8 +1095,12 @@
         <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
           <span class="theme-icon"></span>
         </button>
-        <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
-          <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()"
+          aria-label="Toggle menu">
+          <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
         </button>
       </div>
     </div>
@@ -1059,44 +1113,87 @@
 
   <nav class="nav" aria-label="FrontierView navigation">
     <a class="nav-item" href="/" aria-label="Tool">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
       Tool
     </a>
     <a class="nav-item" href="/calibration" aria-label="Calibrate">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+      </svg>
       Calibrate
     </a>
     <a class="nav-item active" href="/about" aria-label="About">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
       About
     </a>
     <div class="nav-section-divider"></div>
     <a class="nav-section-item" href="#problem" aria-label="Problem">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
       Problem
     </a>
     <a class="nav-section-item" href="#model" aria-label="Model">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
       Model
     </a>
     <a class="nav-section-item" href="#how-it-works" aria-label="How it works">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path
+          d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+      </svg>
       How
     </a>
     <a class="nav-section-item" href="#demonstrates" aria-label="Demonstrates">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
       Demo
     </a>
     <a class="nav-section-item" href="#limitations" aria-label="Limitations">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
       Limits
     </a>
     <a class="nav-section-item" href="#engineering-notes" aria-label="Engineering notes">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </svg>
       Eng.
     </a>
     <a class="nav-section-item" href="#references" aria-label="References">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      </svg>
       Refs
     </a>
   </nav>
@@ -1203,7 +1300,7 @@
             <span class="material-icons">trending_up</span>
             <span>Temporary impact — h(v)</span>
           </div>
-          <pre><code>h(v)  =  η · σ · ( v / (6.5 · V) )^0.6</code></pre>
+          <div class="formula-body" id="formula-h"></div>
         </div>
 
         <div class="formula-block">
@@ -1211,7 +1308,7 @@
             <span class="material-icons">swap_horiz</span>
             <span>Spread cost — s</span>
           </div>
-          <pre><code>s  =  ε · sgn(v)</code></pre>
+          <div class="formula-body" id="formula-s"></div>
         </div>
 
         <div class="formula-block">
@@ -1219,7 +1316,7 @@
             <span class="material-icons">north_east</span>
             <span>Permanent impact — g(v)</span>
           </div>
-          <pre><code>g(v)  =  γ · σ · ( v / V )</code></pre>
+          <div class="formula-body" id="formula-g"></div>
         </div>
 
         <p>All three expressions return dimensionless fractional price changes. Multiply by 10,000 to convert to basis
@@ -1245,7 +1342,8 @@
               <tr>
                 <td>V</td>
                 <td>Hourly ADV</td>
-                <td>ADV / 6.5 trading hours per day (shares per hour); normalises v to a dimensionless participation rate</td>
+                <td>ADV / 6.5 trading hours per day (shares per hour); normalises v to a dimensionless participation
+                  rate</td>
               </tr>
               <tr>
                 <td>σ</td>
@@ -1451,7 +1549,7 @@
           <li>Demonstration of the Almgren-Chriss parameter estimation methodology — heteroskedastic WLS
             regression on synthetic fills with known ground truth — with calibration scatter plots, parameter
             recovery bar chart, and residual Q-Q plots against N(0,1), in the <a href="/calibration">Calibration
-            tab</a>.</li>
+              tab</a>.</li>
         </ul>
       </section>
 
@@ -1639,7 +1737,6 @@
         </div>
       </section>
 
-
     </main>
   </div>
 
@@ -1655,13 +1752,14 @@
     const MOON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
 
     function getTheme() {
-      try {
+      try
+      {
         const stored = localStorage.getItem('theme');
         if (stored) return stored;
         const param = new URLSearchParams(window.location.search).get('theme');
         if (param === 'light' || param === 'dark') return param;
         return 'dark';
-      } catch(e) { return 'dark'; }
+      } catch (e) { return 'dark'; }
     }
 
     function applyTheme(t) {
@@ -1670,7 +1768,7 @@
       document.querySelectorAll('.theme-icon').forEach(el => {
         el.innerHTML = t === 'dark' ? SUN_SVG : MOON_SVG;
       });
-      try { localStorage.setItem('theme', t); } catch(e) {}
+      try { localStorage.setItem('theme', t); } catch (e) { }
     }
 
     function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
@@ -1698,6 +1796,29 @@
         : '<path d="M18 6L6 18M6 6l12 12"/>';
     }
 
+    // ── KaTeX formula rendering ──────────────────────────────────────
+    function renderMathInPage() {
+      const opts = { throwOnError: false, displayMode: true };
+
+      katex.render(
+        String.raw`h(v) \;=\; \eta \cdot \sigma \cdot \left(\frac{v}{6.5 \cdot V}\right)^{\!0.6}`,
+        document.getElementById('formula-h'),
+        opts
+      );
+
+      katex.render(
+        String.raw`s \;=\; \varepsilon \cdot \operatorname{sgn}(v)`,
+        document.getElementById('formula-s'),
+        opts
+      );
+
+      katex.render(
+        String.raw`g(v) \;=\; \gamma \cdot \sigma \cdot \dfrac{v}{V}`,
+        document.getElementById('formula-g'),
+        opts
+      );
+    }
+
     applyTheme(getTheme());
     window.addEventListener('load', updateNavPill);
 
@@ -1705,7 +1826,8 @@
     const sectionNavItems = document.querySelectorAll('.nav-section-item');
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => {
-        if (e.isIntersecting) {
+        if (e.isIntersecting)
+        {
           sectionNavItems.forEach(n => n.classList.remove('active'));
           const active = document.querySelector(`.nav-section-item[href="#${e.target.id}"]`);
           if (active) active.classList.add('active');
