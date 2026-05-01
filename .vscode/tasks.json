@@ -4,7 +4,7 @@
     {
       "label": "Test: All",
       "type": "shell",
-      "command": "${workspaceFolder}/venv/bin/python -m pytest api/tests/ tests/ -v",
+      "command": "${workspaceFolder}/venv/Scripts/python.exe -m pytest api/tests/ tests/ -v",
       "group": {
         "kind": "test",
         "isDefault": true
@@ -19,7 +19,7 @@
     {
       "label": "Test: Unit (test_impact_model)",
       "type": "shell",
-      "command": "${workspaceFolder}/venv/bin/python -m pytest tests/test_impact_model.py -v",
+      "command": "${workspaceFolder}/venv/Scripts/python.exe -m pytest tests/test_impact_model.py -v",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -31,7 +31,7 @@
     {
       "label": "Test: Property (test_market_impact_properties)",
       "type": "shell",
-      "command": "${workspaceFolder}/venv/bin/python -m pytest tests/test_market_impact_properties.py -v",
+      "command": "${workspaceFolder}/venv/Scripts/python.exe -m pytest tests/test_market_impact_properties.py -v",
       "group": "test",
       "presentation": {
         "reveal": "always",

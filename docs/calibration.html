@@ -8,9 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script>
+    (function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.classList.add(t);}catch(e){document.documentElement.classList.add('dark');}})();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     /* ── Design tokens ───────────────────────────────────────────────── */
@@ -29,15 +32,15 @@
       --md-error: #ffb4ab;
       --md-error-container: #93000a;
 
-      --md-surface: #0b0f1a;
-      --md-surface-1: #0f172a;
-      --md-surface-2: #1e293b;
-      --md-surface-3: #334155;
+      --md-surface: #06090f;
+      --md-surface-1: #090e18;
+      --md-surface-2: #0c1220;
+      --md-surface-3: #1c2d4a;
       --md-surface-4: #475569;
-      --md-on-surface: #f1f5f9;
-      --md-on-surface-var: #94a3b8;
-      --md-outline: #64748b;
-      --md-outline-var: rgba(255, 255, 255, 0.08);
+      --md-on-surface: #eef2f7;
+      --md-on-surface-var: #8b9dbf;
+      --md-outline: #435270;
+      --md-outline-var: rgba(255, 255, 255, 0.07);
 
       --md-warning: #ffb74d;
       --md-warning-container: #3d2000;
@@ -65,8 +68,29 @@
       padding: 0;
     }
 
+    /* ── Light mode ──────────────────────────────────────────────────── */
+    html.light {
+      --md-primary: #0e7490;
+      --md-on-primary: #ffffff;
+      --md-primary-container: #cffafe;
+      --md-on-primary-cont: #0e7490;
+      --md-surface: #f5f7fb;
+      --md-surface-1: #ffffff;
+      --md-surface-2: #eef1f8;
+      --md-surface-3: #e2e8f0;
+      --md-on-surface: #0f172a;
+      --md-on-surface-var: #475569;
+      --md-outline: #64748b;
+      --md-outline-var: rgba(0, 0, 0, 0.08);
+    }
+
+    html.light .hero {
+      background: linear-gradient(135deg, #dbeafe 0%, #f5f7fb 50%, #e0f2fe 100%);
+    }
+
     html {
       scroll-behavior: smooth;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     body {
@@ -75,6 +99,11 @@
       color: var(--md-on-surface);
       line-height: 1.6;
       font-size: 14px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
     }
 
     a {
@@ -86,91 +115,177 @@
       text-decoration: underline;
     }
 
-    /* ── Navigation rail ─────────────────────────────────────────────── */
+    /* ── Top navigation ──────────────────────────────────────────────── */
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--md-outline-var);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--md-surface) 85%, transparent);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .topnav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topnav-logo { line-height: 0; text-decoration: none; display: flex; align-items: center; }
+    .topnav-logo svg { height: 40px; width: auto; }
+
+    .topnav-desktop {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+    }
+
+    .topnav-pill {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 32px;
+      border-radius: 7px;
+      background: oklch(65% 0.18 222 / 0.1);
+      transition: left 0.4s cubic-bezier(0.16,1,0.3,1), width 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.2s;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .topnav-link {
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--md-on-surface-var);
+      text-decoration: none;
+      position: relative;
+      z-index: 1;
+      transition: color 0.15s;
+    }
+
+    .topnav-link.active { color: var(--md-primary); font-weight: 500; }
+    .topnav-link:hover { text-decoration: none; color: var(--md-on-surface); }
+
+    .topnav-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--md-outline-var);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .topnav-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 7px;
+      border-radius: 7px;
+      color: var(--md-on-surface-var);
+      line-height: 0;
+      transition: color 0.15s;
+      display: flex;
+      align-items: center;
+    }
+
+    .topnav-mobile { display: none; align-items: center; gap: 4px; }
+
+    .topnav-mobile-menu {
+      border-top: 1px solid var(--md-outline-var);
+      padding: 8px 24px 12px;
+      display: none;
+    }
+
+    .topnav-mobile-link {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--md-on-surface-var);
+      text-decoration: none;
+      margin-bottom: 2px;
+      transition: all 0.15s;
+    }
+
+    .topnav-mobile-link.active {
+      color: var(--md-primary);
+      font-weight: 500;
+      background: oklch(65% 0.18 222 / 0.08);
+    }
+
+    @media (max-width: 700px) {
+      .topnav-desktop { display: none; }
+      .topnav-mobile { display: flex; }
+    }
+
+    /* ── Left nav rail ───────────────────────────────────────────────── */
     .nav {
       position: fixed;
-      top: 0;
       left: 0;
+      top: 60px;
       bottom: 0;
       width: 80px;
-      background: var(--md-surface-1);
-      border-right: 1px solid var(--md-outline-var);
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 1rem 0;
-      gap: 0.25rem;
-      z-index: 100;
-    }
-
-    .nav-logo {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--md-shape-md);
-      background: var(--md-primary-container);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1rem;
-      text-decoration: none;
-    }
-
-    .nav-logo .material-icons {
-      color: var(--md-on-primary-cont);
-      font-size: 28px;
+      gap: 4px;
+      border-right: 1px solid var(--md-outline-var);
+      background: var(--md-surface);
+      z-index: 40;
     }
 
     .nav-item {
-      width: 56px;
-      padding: 0.4rem 0;
-      border-radius: var(--md-shape-full);
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.2rem;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.2s;
+      justify-content: center;
+      gap: 4px;
+      width: 60px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
       color: var(--md-on-surface-var);
-      font-size: 10px;
+      text-decoration: none;
+      transition: color 0.15s, background 0.15s;
+      text-align: center;
     }
 
     .nav-item:hover {
-      background: rgba(34, 211, 238, 0.1);
+      color: var(--md-on-surface);
+      background: var(--md-outline-var);
       text-decoration: none;
     }
 
     .nav-item.active {
       color: var(--md-primary);
+      background: oklch(65% 0.18 222 / 0.1);
     }
 
-    .nav-item.active .nav-pill {
-      background: var(--md-primary-container);
-      width: 56px;
-      height: 32px;
-      border-radius: var(--md-shape-full);
-    }
+    .nav-item svg { flex-shrink: 0; }
 
-    .nav-pill {
-      width: 56px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .nav-item .material-icons {
-      font-size: 22px;
-    }
+    @media (max-width: 700px) { .nav { display: none; } }
 
     /* ── Main layout ─────────────────────────────────────────────────── */
     .layout {
       margin-left: 80px;
     }
 
+    @media (max-width: 700px) { .layout { margin-left: 0; } }
+
     /* ── Hero ────────────────────────────────────────────────────────── */
     .hero {
-      background: linear-gradient(135deg, #001a2e 0%, #0b0f1a 50%, #0a1628 100%);
+      background: linear-gradient(135deg, #001020 0%, #06090f 50%, #080d1a 100%);
       padding: 2.5rem 3rem 2rem;
       border-bottom: 1px solid var(--md-outline-var);
       position: relative;
@@ -189,7 +304,8 @@
     }
 
     .hero-inner {
-      max-width: 1200px;
+      max-width: 1040px;
+      margin: 0 auto;
       position: relative;
       z-index: 1;
     }
@@ -218,7 +334,8 @@
     /* ── Content wrapper ─────────────────────────────────────────────── */
     .content {
       padding: 2rem 3rem;
-      max-width: 1200px;
+      max-width: 1040px;
+      margin: 0 auto;
     }
 
     /* ── Prose card ──────────────────────────────────────────────────── */
@@ -646,8 +763,8 @@
 
     /* ── Footer ──────────────────────────────────────────────────────── */
     footer {
-      border-top: 1px solid var(--md-outline-var);
       margin-left: 80px;
+      border-top: 1px solid var(--md-outline-var);
       padding: 1.25rem 3rem;
       display: flex;
       align-items: center;
@@ -668,15 +785,6 @@
     }
 
     @media (max-width: 700px) {
-      .nav {
-        display: none;
-      }
-
-      .layout,
-      footer {
-        margin-left: 0;
-      }
-
       .hero,
       .content {
         padding: 1.5rem 1.25rem;
@@ -691,20 +799,48 @@
 
 <body>
 
-  <nav class="nav">
-    <a class="nav-logo" href="/" style="text-decoration:none">
-      <span class="material-icons">show_chart</span>
-    </a>
-    <a class="nav-item" href="/">
-      <div class="nav-pill"><span class="material-icons">analytics</span></div>
+  <header class="topnav">
+    <div class="topnav-inner">
+      <a class="topnav-logo" href="https://garethcooke.com" aria-label="Gareth Cooke">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-400 -200 1500 1700"><g transform="rotate(70, 320, 640)"><g transform="translate(0,1280) scale(0.1,-0.1)" fill="#06b6d4" stroke="#06b6d4" stroke-width="40"><path d="M3557 12786 c-47 -17 -62 -29 -100 -85 -39 -58 -43 -61 -95 -61 -73 0 -125 -33 -167 -105 -10 -17 -14 -16 -52 12 -23 16 -63 38 -89 48 l-47 18 -19 -23 c-21 -26 -23 -62 -6 -93 16 -31 37 -45 86 -58 23 -6 45 -15 48 -20 3 -5 -20 -25 -51 -44 -51 -33 -74 -59 -63 -70 2 -2 46 -9 98 -15 120 -14 138 -18 149 -39 8 -15 16 -83 36 -329 l6 -63 -43 -37 c-60 -53 -112 -109 -155 -168 -58 -80 -92 -98 -186 -103 l-79 -3 -46 50 c-26 27 -85 112 -132 187 -102 165 -165 228 -283 284 -70 34 -91 50 -142 111 -62 74 -99 107 -150 132 -31 16 -159 43 -257 54 -50 5 -61 11 -92 45 -62 70 -138 84 -218 43 -25 -13 -40 -13 -103 -3 -42 6 -125 10 -192 7 -164 -6 -238 -40 -284 -130 -46 -89 -4 -253 117 -459 38 -66 44 -83 44 -133 0 -90 40 -144 121 -166 48 -13 73 -45 136 -175 57 -118 115 -183 188 -210 28 -10 77 -29 110 -42 33 -14 127 -49 209 -79 193 -69 406 -194 406 -238 0 -7 -12 -41 -27 -77 -25 -59 -28 -75 -28 -197 0 -122 -2 -135 -20 -148 -28 -22 -71 -10 -116 30 -62 57 -104 64 -218 37 -53 -13 -102 -25 -108 -27 -26 -7 -12 -30 35 -57 26 -15 62 -39 81 -52 41 -30 91 -45 151 -45 59 0 90 -21 90 -63 0 -28 -15 -47 -120 -148 -115 -112 -136 -139 -107 -139 8 0 19 -11 25 -25 23 -51 95 -21 161 69 46 62 62 69 147 69 50 0 73 -7 133 -38 142 -74 172 -49 231 187 40 157 43 162 75 123 31 -38 158 -286 224 -437 96 -223 130 -338 156 -540 35 -277 79 -449 144 -573 40 -77 65 -198 56 -271 -3 -30 -10 -54 -14 -54 -5 0 -38 20 -75 44 -80 54 -361 193 -413 204 -51 11 -97 0 -146 -34 -65 -46 -101 -110 -157 -278 -52 -157 -84 -221 -110 -221 -12 0 -15 17 -16 76 -2 86 -14 112 -73 153 -52 36 -75 34 -95 -9 -15 -31 -16 -44 -5 -93 6 -31 24 -86 40 -121 37 -82 48 -141 26 -141 -15 0 -109 69 -122 90 -4 6 -25 25 -47 41 -46 33 -105 38 -148 14 -14 -8 -38 -15 -55 -15 -62 -1 -64 -12 -20 -96 22 -42 59 -97 81 -123 38 -42 48 -47 125 -65 92 -21 129 -39 129 -62 0 -41 -109 -138 -190 -170 -71 -27 -97 -50 -125 -109 -17 -38 -38 -64 -66 -82 -39 -26 -56 -59 -45 -88 12 -33 180 -8 255 37 20 12 70 54 112 94 84 81 109 94 176 94 102 0 163 -84 163 -224 0 -83 17 -173 45 -243 16 -41 53 -67 79 -57 20 8 98 250 90 278 -3 11 -21 44 -39 71 -18 28 -40 73 -49 101 l-17 51 59 60 c64 66 107 131 173 266 24 48 49 87 55 87 14 0 110 -106 199 -219 32 -40 71 -81 87 -90 16 -9 31 -27 35 -41 4 -14 -1 -117 -11 -230 -9 -113 -24 -286 -33 -385 -18 -217 -13 -451 17 -705 57 -486 160 -895 361 -1434 116 -311 164 -423 322 -751 231 -481 315 -679 406 -951 101 -306 132 -472 138 -754 6 -236 -7 -383 -52 -608 -68 -333 -225 -643 -447 -877 -108 -114 -135 -136 -571 -467 -237 -181 -347 -271 -406 -335 -101 -107 -104 -129 -20 -127 46 1 68 8 115 36 98 59 241 127 405 193 201 81 340 151 448 225 288 198 551 520 741 905 116 236 158 372 192 625 16 124 16 491 -1 650 -51 491 -188 1037 -469 1870 -49 146 -104 312 -122 370 -17 58 -49 159 -70 225 -68 212 -117 447 -152 730 -17 134 -13 401 9 545 13 83 18 177 18 335 l0 220 33 111 c41 135 45 143 69 127 67 -47 177 -106 295 -158 75 -34 144 -68 154 -75 23 -20 15 -110 -27 -301 -23 -105 -31 -171 -32 -244 0 -116 10 -173 65 -345 27 -87 47 -177 63 -295 30 -211 37 -237 82 -286 50 -56 84 -73 109 -54 19 13 18 15 -3 78 -21 59 -21 67 -8 94 8 16 17 54 21 86 6 51 4 63 -26 120 -30 59 -31 66 -19 92 22 44 41 51 91 34 50 -16 127 -90 212 -203 31 -41 69 -84 84 -95 16 -11 70 -31 122 -46 52 -15 103 -31 113 -37 14 -7 23 -6 34 5 13 13 13 17 0 38 -8 13 -18 45 -21 70 -10 66 -53 126 -164 227 -156 142 -154 139 -150 169 7 60 129 122 303 153 55 10 108 22 117 25 27 11 31 37 8 65 -11 14 -29 42 -40 63 l-20 37 -68 0 c-43 0 -94 -9 -143 -24 -64 -20 -128 -31 -162 -27 -4 1 15 31 43 67 100 130 121 200 75 247 -58 57 -111 40 -183 -60 l-47 -65 -3 66 c-2 51 7 110 38 244 53 227 52 271 -8 397 -51 106 -106 184 -197 283 -72 78 -258 236 -368 315 -37 26 -72 58 -77 72 -14 36 6 232 35 360 64 275 86 394 95 523 27 373 -56 764 -244 1157 -115 239 -231 411 -390 577 -107 110 -140 157 -209 295 -26 50 -69 130 -97 178 -73 122 -90 163 -90 218 0 88 45 145 191 245 88 59 129 101 161 162 20 38 23 60 23 146 0 96 -2 103 -37 175 -21 40 -83 137 -138 213 -107 149 -117 176 -77 214 30 29 94 41 208 42 64 0 101 4 114 14 17 13 16 16 -26 66 -24 28 -51 56 -61 61 -26 14 -78 10 -138 -11 -30 -11 -58 -19 -62 -20 -19 0 -4 30 40 85 58 72 82 115 82 149 0 45 -58 58 -133 32z"/></g></g></svg>
+      </a>
+      <div class="topnav-desktop" id="topnav-desktop">
+        <div class="topnav-pill" id="topnav-pill"></div>
+        <a class="topnav-link" href="https://garethcooke.com/">Home</a>
+        <a class="topnav-link" href="https://garethcooke.com/projects">Projects</a>
+        <a class="topnav-link" href="https://garethcooke.com/contact">Contact</a>
+        <div class="topnav-divider"></div>
+        <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span class="theme-icon"></span>
+        </button>
+      </div>
+      <div class="topnav-mobile">
+        <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span class="theme-icon"></span>
+        </button>
+        <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="topnav-mobile-menu" id="topnav-mobile-menu">
+      <a class="topnav-mobile-link" href="https://garethcooke.com/">Home</a>
+      <a class="topnav-mobile-link" href="https://garethcooke.com/projects">Projects</a>
+      <a class="topnav-mobile-link" href="https://garethcooke.com/contact">Contact</a>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="FrontierView navigation">
+    <a class="nav-item" href="/" aria-label="Tool">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Tool
     </a>
-    <a class="nav-item active" href="/calibration">
-      <div class="nav-pill"><span class="material-icons">science</span></div>
+    <a class="nav-item active" href="/calibration" aria-label="Calibrate">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
       Calibrate
     </a>
-    <a class="nav-item" href="/about">
-      <div class="nav-pill"><span class="material-icons">info</span></div>
+    <a class="nav-item" href="/about" aria-label="About">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       About
     </a>
   </nav>
@@ -908,7 +1044,74 @@
   </footer>
 
   <script>
-    Chart.defaults.color = '#94a3b8';
+    // ── Theme ────────────────────────────────────────────────────────
+    const SUN_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+    const MOON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+
+    function getTheme() {
+      try {
+        const stored = localStorage.getItem('theme');
+        if (stored) return stored;
+        const param = new URLSearchParams(window.location.search).get('theme');
+        if (param === 'light' || param === 'dark') return param;
+        return 'dark';
+      } catch(e) { return 'dark'; }
+    }
+
+    function applyTheme(t) {
+      document.documentElement.classList.remove('dark', 'light');
+      document.documentElement.classList.add(t);
+      document.querySelectorAll('.theme-icon').forEach(el => {
+        el.innerHTML = t === 'dark' ? SUN_SVG : MOON_SVG;
+      });
+      try { localStorage.setItem('theme', t); } catch(e) {}
+      updateChartColors();
+    }
+
+    function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+
+    function updateNavPill() {
+      const nav = document.getElementById('topnav-desktop');
+      const pill = document.getElementById('topnav-pill');
+      if (!nav || !pill) return;
+      const active = nav.querySelector('.topnav-link.active');
+      if (!active) return;
+      const navRect = nav.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      pill.style.left = (activeRect.left - navRect.left) + 'px';
+      pill.style.width = activeRect.width + 'px';
+      pill.style.opacity = '1';
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('topnav-mobile-menu');
+      const icon = document.getElementById('hamburger-icon');
+      const isOpen = menu.style.display === 'block';
+      menu.style.display = isOpen ? 'none' : 'block';
+      icon.innerHTML = isOpen
+        ? '<path d="M3 12h18M3 6h18M3 18h18"/>'
+        : '<path d="M18 6L6 18M6 6l12 12"/>';
+    }
+
+    function updateChartColors() {
+      const isLight = document.documentElement.classList.contains('light');
+      Chart.defaults.color = isLight ? '#475569' : '#8b9dbf';
+      Chart.defaults.borderColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)';
+      document.querySelectorAll('canvas').forEach(canvas => {
+        const chart = Chart.getChart(canvas);
+        if (!chart) return;
+        chart.options.scales && Object.values(chart.options.scales).forEach(ax => {
+          if (ax.grid) ax.grid.color = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+          if (ax.title) ax.title.color = isLight ? '#64748b' : '#435270';
+        });
+        chart.update('none');
+      });
+    }
+
+    applyTheme(getTheme());
+    window.addEventListener('load', updateNavPill);
+
+    Chart.defaults.color = '#8b9dbf';
     Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
     Chart.defaults.font.family = '"Inter", ui-sans-serif, system-ui, sans-serif';
 
@@ -1057,13 +1260,13 @@
           scales: {
             x: {
               type: 'linear',
-              title: { display: true, text: xLabel, color: '#64748b', font: { size: 10 } },
+              title: { display: true, text: xLabel, color: '#435270', font: { size: 10 } },
               grid: { color: 'rgba(255,255,255,0.05)' },
               ticks: { font: { size: 10 } },
             },
             y: {
               type: 'linear',
-              title: { display: true, text: yLabel, color: '#64748b', font: { size: 10 } },
+              title: { display: true, text: yLabel, color: '#435270', font: { size: 10 } },
               grid: { color: 'rgba(255,255,255,0.05)' },
               ticks: { font: { size: 10 } },
             }
@@ -1123,13 +1326,13 @@
           scales: {
             x: {
               type: 'linear',
-              title: { display: true, text: 'Theoretical quantiles', color: '#64748b', font: { size: 10 } },
+              title: { display: true, text: 'Theoretical quantiles', color: '#435270', font: { size: 10 } },
               grid: { color: 'rgba(255,255,255,0.05)' },
               ticks: { font: { size: 10 } },
             },
             y: {
               type: 'linear',
-              title: { display: true, text: 'Sample quantiles', color: '#64748b', font: { size: 10 } },
+              title: { display: true, text: 'Sample quantiles', color: '#435270', font: { size: 10 } },
               grid: { color: 'rgba(255,255,255,0.05)' },
               ticks: { font: { size: 10 } },
             }
@@ -1189,7 +1392,7 @@
                 usePointStyle: true,
                 pointStyle: 'rect',
                 padding: 16,
-                color: '#94a3b8',
+                color: '#8b9dbf',
                 font: { size: 11 },
               }
             },
@@ -1209,7 +1412,7 @@
             x: { grid: { display: false }, ticks: { font: { size: 12 } } },
             y: {
               beginAtZero: true,
-              title: { display: true, text: 'Coefficient value', color: '#64748b', font: { size: 11 } },
+              title: { display: true, text: 'Coefficient value', color: '#435270', font: { size: 11 } },
               grid: { color: 'rgba(255,255,255,0.05)' },
             }
           }
