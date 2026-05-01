@@ -84,10 +84,6 @@
       --md-outline-var: rgba(0, 0, 0, 0.08);
     }
 
-    html.light .hero {
-      background: linear-gradient(135deg, #dbeafe 0%, #f5f7fb 50%, #e0f2fe 100%);
-    }
-
     html.light .sched-opt:hover {
       background: rgba(14, 116, 144, 0.08);
     }
@@ -145,7 +141,7 @@
       max-width: 1120px;
       margin: 0 auto;
       padding: 0 24px;
-      height: 60px;
+      height: 88px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -159,7 +155,7 @@
     }
 
     .topnav-logo svg {
-      height: 40px;
+      height: 88px;
       width: auto;
     }
 
@@ -269,7 +265,7 @@
     .nav {
       position: fixed;
       left: 0;
-      top: 60px;
+      top: 88px;
       bottom: 0;
       width: 80px;
       display: flex;
@@ -334,35 +330,20 @@
 
     /* ── Hero ────────────────────────────────────────────────────────── */
     .hero {
-      background: linear-gradient(135deg, #001020 0%, #06090f 50%, #080d1a 100%);
-      padding: 2.5rem 3rem 2rem;
+      background: var(--md-surface);
+      padding: 2.5rem 24px 2rem;
       border-bottom: 1px solid var(--md-outline-var);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -80px;
-      right: -80px;
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(34, 211, 238, 0.07) 0%, transparent 70%);
     }
 
     .hero-inner {
-      max-width: 1040px;
+      max-width: 1120px;
       margin: 0 auto;
-      position: relative;
-      z-index: 1;
     }
 
     .hero h1 {
       font-size: clamp(1.5rem, 3vw, 2.25rem);
       font-weight: 300;
-      color: #fff;
+      color: var(--md-on-surface);
       letter-spacing: -0.02em;
       line-height: 1.2;
       margin-bottom: 0.4rem;
@@ -382,8 +363,8 @@
 
     /* ── Content wrapper ─────────────────────────────────────────────── */
     .content {
-      padding: 2rem 3rem;
-      max-width: 1040px;
+      padding: 2rem 24px;
+      max-width: 1120px;
       margin: 0 auto;
     }
 
