@@ -50,6 +50,11 @@ app.mount("/docs", StaticFiles(directory="docs"), name="docs")
 app.include_router(calibration_router)
 
 
+@app.get("/iguana.svg")
+def iguana_svg():
+    return FileResponse("docs/iguana.svg", media_type="image/svg+xml")
+
+
 @app.get("/")
 def root():
     return FileResponse("docs/index.html", media_type="text/html")
