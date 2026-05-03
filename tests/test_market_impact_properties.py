@@ -452,11 +452,10 @@ def test_frontier_monotonicity(params, order_size, horizon_hours):
     execution cost while reducing shortfall variance.  Any non-monotonicity
     indicates a non-convex frontier bug.
 
-    DIAGNOSTIC: This test also FAILS on the current implementation because
-    compute_cost_variance's forward-convention perm_cost decreases as schedules
-    front-load (a consequence of the same bug exposed by test 1).  At some λ
-    the falling perm cost outweighs the rising temp cost, producing a dip in
-    the total-cost frontier.
+    Previously failing due to a forward-convention permanent-cost bug in
+    compute_cost_variance (perm_cost fell as schedules front-loaded, causing
+    a dip in the total-cost frontier at certain λ values).  Fixed by the
+    midpoint-rule accumulation in commit 80dcd4e.
     """
     frontier = generate_frontier(order_size, horizon_hours, params)
     frontier.sort(key=lambda x: x["lambda_val"])

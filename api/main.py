@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -53,6 +53,16 @@ app.include_router(calibration_router)
 @app.get("/iguana.svg")
 def iguana_svg():
     return FileResponse("docs/iguana.svg", media_type="image/svg+xml")
+
+
+@app.get("/nav.css")
+def nav_css():
+    return FileResponse("docs/nav.css", media_type="text/css")
+
+
+@app.get("/nav.js")
+def nav_js():
+    return FileResponse("docs/nav.js", media_type="application/javascript")
 
 
 @app.get("/")
@@ -140,9 +150,10 @@ def health() -> dict:
 
 
 @app.post("/api/regime-frontier", response_model=RegimeFrontierResponse)
-def regime_frontier(request: AnalyseRequest) -> RegimeFrontierResponse:
+@limiter.limit("30/minute")
+def regime_frontier(request: Request, payload: AnalyseRequest) -> RegimeFrontierResponse:
     """Generate efficient frontiers under calm, normal, and stressed market regimes."""
-    symbol = request.symbol.upper()
+    symbol = payload.symbol.upper()
     if symbol not in SYMBOL_PARAMS:
         raise HTTPException(
             status_code=422,
@@ -150,7 +161,7 @@ def regime_frontier(request: AnalyseRequest) -> RegimeFrontierResponse:
         )
 
     base = SYMBOL_PARAMS[symbol]
-    n_bins = max(2, round(request.horizon_hours * 2))
+    n_bins = max(2, round(payload.horizon_hours * 2))
 
     frontiers: dict[str, list[RegimeFrontierPoint]] = {}
     for regime, mults in _REGIMES.items():
@@ -161,7 +172,7 @@ def regime_frontier(request: AnalyseRequest) -> RegimeFrontierResponse:
             eta=base.eta * mults["eta"],
             gamma=base.gamma * mults["gamma"],
         )
-        pts = generate_frontier(request.order_size, request.horizon_hours, scaled, n_bins)
+        pts = generate_frontier(payload.order_size, payload.horizon_hours, scaled, n_bins)
         frontiers[regime] = [
             RegimeFrontierPoint(expected_cost_bps=p["expected_cost_bps"], variance_bps2=p["variance_bps2"])
             for p in pts
@@ -171,9 +182,10 @@ def regime_frontier(request: AnalyseRequest) -> RegimeFrontierResponse:
 
 
 @app.post("/analyse", response_model=AnalyseResponse)
-def analyse(request: AnalyseRequest) -> AnalyseResponse:
+@limiter.limit("30/minute")
+def analyse(request: Request, payload: AnalyseRequest) -> AnalyseResponse:
     """Run market impact analysis and return schedule, decomposition, and frontier."""
-    symbol = request.symbol.upper()
+    symbol = payload.symbol.upper()
     if symbol not in SYMBOL_PARAMS:
         raise HTTPException(
             status_code=422,
@@ -181,20 +193,20 @@ def analyse(request: AnalyseRequest) -> AnalyseResponse:
         )
 
     params = SYMBOL_PARAMS[symbol]
-    n_bins = max(2, round(request.horizon_hours * 2))
+    n_bins = max(2, round(payload.horizon_hours * 2))
     ctx = _BinCtx(
         v_hourly=params.adv / TRADING_HOURS_PER_DAY,
-        dt=request.horizon_hours / n_bins,
-        order_size=request.order_size,
+        dt=payload.horizon_hours / n_bins,
+        order_size=payload.order_size,
     )
 
-    if request.schedule_type == "ac_linear":
+    if payload.schedule_type == "ac_linear":
         raw_schedule = schedule_ac_linear(
-            n_bins, request.order_size, request.horizon_hours, params,
+            n_bins, payload.order_size, payload.horizon_hours, params,
         )
     else:
-        raw_schedule = _SCHEDULE_FNS[request.schedule_type](
-            n_bins, request.order_size, ctx.v_hourly, ctx.dt,
+        raw_schedule = _SCHEDULE_FNS[payload.schedule_type](
+            n_bins, payload.order_size, ctx.v_hourly, ctx.dt,
         )
 
     frontier_out = [
@@ -204,14 +216,14 @@ def analyse(request: AnalyseRequest) -> AnalyseResponse:
             variance_bps2=pt["variance_bps2"],
         )
         for pt in generate_frontier(
-            request.order_size, request.horizon_hours, params, n_bins,
+            payload.order_size, payload.horizon_hours, params, n_bins,
         )
     ]
 
     return AnalyseResponse(
         frontier=frontier_out,
         schedule=_build_schedule(raw_schedule, ctx),
-        impact_decomp=_decompose_impact(raw_schedule, ctx, params, request.horizon_hours),
+        impact_decomp=_decompose_impact(raw_schedule, ctx, params, payload.horizon_hours),
         model_params=ModelParams(
             eta=params.eta,
             gamma=params.gamma,

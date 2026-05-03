@@ -1,11 +1,13 @@
 from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+ValidSymbol = Literal["AAPL", "MSFT", "GOOGL", "JPM", "SPY"]
 
 
 class AnalyseRequest(BaseModel):
-    symbol: str
-    order_size: float
-    horizon_hours: float
+    symbol: ValidSymbol
+    order_size: float = Field(gt=0, le=1_000_000_000)
+    horizon_hours: float = Field(gt=0, le=24)
     schedule_type: Literal["twap", "front_loaded", "back_loaded", "ac_linear"]
 
 

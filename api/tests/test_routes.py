@@ -1,0 +1,54 @@
+"""Route-level integration tests using FastAPI TestClient."""
+
+from fastapi.testclient import TestClient
+
+from api.main import app
+
+client = TestClient(app)
+
+_VALID_ANALYSE = {
+    "symbol": "AAPL",
+    "order_size": 100_000,
+    "horizon_hours": 2.0,
+    "schedule_type": "twap",
+}
+
+_VALID_REGIME = {
+    "symbol": "AAPL",
+    "order_size": 100_000,
+    "horizon_hours": 2.0,
+    "schedule_type": "twap",
+}
+
+
+def test_analyse_valid_returns_200():
+    response = client.post("/analyse", json=_VALID_ANALYSE)
+    assert response.status_code == 200
+    body = response.json()
+    assert "frontier" in body
+    assert "schedule" in body
+    assert "impact_decomp" in body
+    assert "model_params" in body
+    assert isinstance(body["frontier"], list)
+    assert isinstance(body["schedule"], list)
+
+
+def test_analyse_negative_order_size_returns_422():
+    response = client.post("/analyse", json={**_VALID_ANALYSE, "order_size": -1})
+    assert response.status_code == 422
+
+
+def test_health_returns_ok():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_regime_frontier_returns_three_arrays():
+    response = client.post("/api/regime-frontier", json=_VALID_REGIME)
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body.keys()) >= {"calm", "normal", "stressed"}
+    for regime in ("calm", "normal", "stressed"):
+        assert isinstance(body[regime], list)
+        assert len(body[regime]) > 0

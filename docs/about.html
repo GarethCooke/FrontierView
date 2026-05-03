@@ -11,6 +11,7 @@
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="/nav.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
@@ -18,303 +19,14 @@
   <script>
     (function () { try { var t = localStorage.getItem('theme') || 'dark'; document.documentElement.classList.add(t); } catch (e) { document.documentElement.classList.add('dark'); } })();
   </script>
+  <script src="/nav.js"></script>
   <style>
-    /* ── Design tokens — garethcooke.com palette ─────────────────────── */
-    :root {
-      --md-primary: #22d3ee;
-      --md-on-primary: #083344;
-      --md-primary-container: #0e7490;
-      --md-on-primary-cont: #cffafe;
-
-      --md-secondary: #67e8f9;
-      --md-on-secondary: #0c4a6e;
-
-      --md-tertiary: #d6bee4;
-      --md-on-tertiary: #3b2948;
-
-      --md-error: #ffb4ab;
-      --md-error-container: #93000a;
-
-      --md-surface: #06090f;
-      --md-surface-1: #090e18;
-      --md-surface-2: #0c1220;
-      --md-surface-3: #1c2d4a;
-      --md-surface-4: #475569;
-      --md-on-surface: #eef2f7;
-      --md-on-surface-var: #8b9dbf;
-      --md-outline: #435270;
-      --md-outline-var: rgba(255, 255, 255, 0.07);
-
-      --md-warning: #ffb74d;
-      --md-warning-container: #3d2000;
-      --md-success: #79d47f;
-      --md-success-container: #003910;
-
-      --md-shape-xs: 4px;
-      --md-shape-sm: 8px;
-      --md-shape-md: 12px;
-      --md-shape-lg: 16px;
-      --md-shape-xl: 28px;
-      --md-shape-full: 9999px;
-
-      --md-elev1: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 3px 1px rgba(0, 0, 0, .15);
-      --md-elev2: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
-      --md-elev3: 0 4px 8px 3px rgba(0, 0, 0, .15), 0 1px 3px rgba(0, 0, 0, .3);
-    }
-
-    /* ── Reset & base ────────────────────────────────────────────────── */
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    /* ── Light mode ──────────────────────────────────────────────────── */
-    html.light {
-      --md-primary: #0e7490;
-      --md-on-primary: #ffffff;
-      --md-primary-container: #cffafe;
-      --md-on-primary-cont: #0e7490;
-      --md-surface: #f5f7fb;
-      --md-surface-1: #ffffff;
-      --md-surface-2: #eef1f8;
-      --md-surface-3: #e2e8f0;
-      --md-on-surface: #0f172a;
-      --md-on-surface-var: #475569;
-      --md-outline: #64748b;
-      --md-outline-var: rgba(0, 0, 0, 0.08);
-    }
-
-    html {
-      scroll-behavior: smooth;
-      transition: background-color 0.3s ease, color 0.3s ease;
-        scrollbar-gutter: stable;  }
-
-    body {
-      font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-      background: var(--md-surface);
-      color: var(--md-on-surface);
-      line-height: 1.6;
-      font-size: 14px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-      font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-    }
-
-    a {
-      color: var(--md-primary);
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
     strong {
       color: var(--md-on-surface);
       font-weight: 500;
     }
 
-    /* ── Top navigation ──────────────────────────────────────────────── */
-    .topnav {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      border-bottom: 1px solid var(--md-outline-var);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      backdrop-filter: blur(16px) saturate(180%);
-      background: color-mix(in srgb, var(--md-surface) 85%, transparent);
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    .topnav-inner {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 24px;
-      height: 88px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .topnav-logo {
-      line-height: 0;
-      text-decoration: none;
-    }
-
-    .topnav-logo img {
-      height: 88px;
-      width: auto;
-      filter: brightness(1.1);
-    }
-
-    .topnav-desktop {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      position: relative;
-    }
-
-    .topnav-pill {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 32px;
-      border-radius: 7px;
-      background: oklch(65% 0.18 222 / 0.1);
-      transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1), width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
-      pointer-events: none;
-      opacity: 0;
-    }
-
-    .topnav-link {
-      padding: 6px 14px;
-      border-radius: 7px;
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--md-on-surface-var);
-      text-decoration: none;
-      position: relative;
-      z-index: 1;
-      transition: color 0.15s;
-    }
-
-    .topnav-link.active {
-      color: var(--md-primary);
-      font-weight: 500;
-    }
-
-    .topnav-link:hover {
-      text-decoration: none;
-      color: var(--md-on-surface);
-    }
-
-    .topnav-divider {
-      width: 1px;
-      height: 18px;
-      background: var(--md-outline-var);
-      margin: 0 4px;
-      flex-shrink: 0;
-    }
-
-    .topnav-btn {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 7px;
-      border-radius: 7px;
-      color: var(--md-on-surface-var);
-      line-height: 0;
-      transition: color 0.15s;
-      display: flex;
-      align-items: center;
-    }
-
-    .topnav-mobile {
-      display: none;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .topnav-mobile-menu {
-      border-top: 1px solid var(--md-outline-var);
-      padding: 8px 24px 12px;
-      display: none;
-    }
-
-    .topnav-mobile-link {
-      display: block;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 400;
-      color: var(--md-on-surface-var);
-      text-decoration: none;
-      margin-bottom: 2px;
-      transition: all 0.15s;
-    }
-
-    .topnav-mobile-link.active {
-      color: var(--md-primary);
-      font-weight: 500;
-      background: oklch(65% 0.18 222 / 0.08);
-    }
-
-    .topnav-mobile-divider {
-      height: 1px;
-      background: var(--md-outline-var);
-      margin: 0.4rem 0;
-    }
-
-    @media (max-width: 700px) {
-      .topnav-desktop {
-        display: none;
-      }
-
-      .topnav-mobile {
-        display: flex;
-      }
-    }
-
-    /* ── Left nav rail ───────────────────────────────────────────────── */
-    .nav {
-      position: fixed;
-      left: 0;
-      top: 88px;
-      bottom: 0;
-      width: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1rem 0;
-      gap: 4px;
-      border-right: 1px solid var(--md-outline-var);
-      background: var(--md-surface);
-      z-index: 40;
-    }
-
-    .nav-item {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      width: 60px;
-      padding: 10px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--md-on-surface-var);
-      text-decoration: none;
-      transition: color 0.15s, background 0.15s;
-      text-align: center;
-    }
-
-    .nav-item:hover {
-      color: var(--md-on-surface);
-      background: var(--md-outline-var);
-      text-decoration: none;
-    }
-
-    .nav-item.active {
-      color: var(--md-primary);
-      background: oklch(65% 0.18 222 / 0.1);
-    }
-
-    .nav-item svg {
-      flex-shrink: 0;
-    }
-
+    /* ── Left nav rail (about-page section links) ────────────────────── */
     .nav-section-divider {
       width: 32px;
       height: 1px;
@@ -356,23 +68,6 @@
 
     .nav-section-item svg {
       flex-shrink: 0;
-    }
-
-    @media (max-width: 700px) {
-      .nav {
-        display: none;
-      }
-    }
-
-    /* ── Main layout ─────────────────────────────────────────────────── */
-    .layout {
-      margin-left: 80px;
-    }
-
-    @media (max-width: 700px) {
-      .layout {
-        margin-left: 0;
-      }
     }
 
     /* ── Hero ────────────────────────────────────────────────────────── */
@@ -1085,7 +780,7 @@
   <header class="topnav">
     <div class="topnav-inner">
       <a class="topnav-logo" href="https://garethcooke.com" aria-label="Gareth Cooke">
-        <img src="/iguana.svg" alt="Gareth Cooke" style="height:88px;width:auto;filter:brightness(1.1);" />
+        <img src="/iguana.svg" alt="Gareth Cooke" />
       </a>
       <div class="topnav-desktop" id="topnav-desktop">
         <div class="topnav-pill" id="topnav-pill"></div>
@@ -1093,6 +788,9 @@
         <a class="topnav-link" href="https://garethcooke.com/projects">Projects</a>
         <a class="topnav-link" href="https://garethcooke.com/contact">Contact</a>
         <div class="topnav-divider"></div>
+        <a class="topnav-link" href="/">Tool</a>
+        <a class="topnav-link" href="/calibration">Calibrate</a>
+        <a class="topnav-link active" href="/about">Model docs</a>
         <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
           <span class="theme-icon"></span>
         </button>
@@ -1102,7 +800,7 @@
           <span class="theme-icon"></span>
         </button>
         <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()"
-          aria-label="Toggle menu">
+          aria-label="Toggle menu" aria-expanded="false">
           <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12h18M3 6h18M3 18h18" />
@@ -1757,55 +1455,6 @@
   </footer>
 
   <script>
-    // ── Theme ────────────────────────────────────────────────────────
-    const SUN_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
-    const MOON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
-
-    function getTheme() {
-      try
-      {
-        const stored = localStorage.getItem('theme');
-        if (stored) return stored;
-        const param = new URLSearchParams(window.location.search).get('theme');
-        if (param === 'light' || param === 'dark') return param;
-        return 'dark';
-      } catch (e) { return 'dark'; }
-    }
-
-    function applyTheme(t) {
-      document.documentElement.classList.remove('dark', 'light');
-      document.documentElement.classList.add(t);
-      document.querySelectorAll('.theme-icon').forEach(el => {
-        el.innerHTML = t === 'dark' ? SUN_SVG : MOON_SVG;
-      });
-      try { localStorage.setItem('theme', t); } catch (e) { }
-    }
-
-    function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
-
-    function updateNavPill() {
-      const nav = document.getElementById('topnav-desktop');
-      const pill = document.getElementById('topnav-pill');
-      if (!nav || !pill) return;
-      const active = nav.querySelector('.topnav-link.active');
-      if (!active) return;
-      const navRect = nav.getBoundingClientRect();
-      const activeRect = active.getBoundingClientRect();
-      pill.style.left = (activeRect.left - navRect.left) + 'px';
-      pill.style.width = activeRect.width + 'px';
-      pill.style.opacity = '1';
-    }
-
-    function toggleMobileMenu() {
-      const menu = document.getElementById('topnav-mobile-menu');
-      const icon = document.getElementById('hamburger-icon');
-      const isOpen = menu.style.display === 'block';
-      menu.style.display = isOpen ? 'none' : 'block';
-      icon.innerHTML = isOpen
-        ? '<path d="M3 12h18M3 6h18M3 18h18"/>'
-        : '<path d="M18 6L6 18M6 6l12 12"/>';
-    }
-
     // ── KaTeX formula rendering ──────────────────────────────────────
     function renderMathInPage() {
       const opts = { throwOnError: false, displayMode: true };
@@ -1828,9 +1477,6 @@
         opts
       );
     }
-
-    applyTheme(getTheme());
-    window.addEventListener('load', updateNavPill);
 
     const sections = document.querySelectorAll('section[id]');
     const sectionNavItems = document.querySelectorAll('.nav-section-item');

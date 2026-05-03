@@ -5,24 +5,18 @@ from scipy import stats
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from api.parameters import ALMGREN_ETA, ALMGREN_GAMMA, SYMBOL_PARAMS
 from api.rate_limit import limiter
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Ground truth (Almgren 2005, Table 3)
+# Ground truth (Almgren 2005, Table 3) — imported from api.parameters
 # ─────────────────────────────────────────────────────────────────────────────
-ETA_TRUE   = 0.142
-GAMMA_TRUE = 0.314
+ETA_TRUE   = ALMGREN_ETA    # 0.142
+GAMMA_TRUE = ALMGREN_GAMMA  # 0.314
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Symbol universe  (σ: daily fractional vol; adv: shares/day)
+# Symbol universe — imported from api.parameters (single source of truth)
 # ─────────────────────────────────────────────────────────────────────────────
-SYMBOL_PARAMS = {
-    "AAPL": {"sigma": 0.018, "adv": 80_000_000},
-    "MSFT": {"sigma": 0.017, "adv": 25_000_000},
-    "GOOGL": {"sigma": 0.020, "adv":  1_200_000},
-    "JPM":  {"sigma": 0.016, "adv": 12_000_000},
-    "SPY":  {"sigma": 0.008, "adv": 100_000_000},
-}
 SYMBOLS      = list(SYMBOL_PARAMS.keys())
 SYMBOL_PROBS = np.full(len(SYMBOLS), 1.0 / len(SYMBOLS))
 
@@ -76,8 +70,8 @@ def generate_fills(seed: int, n_orders: int) -> dict:
     # ── Symbol sampling ────────────────────────────────────────────────────
     sym_idx = rng.choice(len(SYMBOLS), size=n_orders, p=SYMBOL_PROBS)
     symbols  = np.array(SYMBOLS)[sym_idx]
-    sigmas   = np.array([SYMBOL_PARAMS[s]["sigma"] for s in symbols])
-    advs     = np.array([SYMBOL_PARAMS[s]["adv"]   for s in symbols])
+    sigmas   = np.array([SYMBOL_PARAMS[s].sigma for s in symbols])
+    advs     = np.array([SYMBOL_PARAMS[s].adv   for s in symbols])
 
     # ── Order parameters ───────────────────────────────────────────────────
     # participation = X/V ∈ [0.1%, 5%], log-uniform
