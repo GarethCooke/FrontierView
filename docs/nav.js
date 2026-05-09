@@ -3,12 +3,22 @@ const MOON_SVG = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" st
 
 function getTheme() {
   try {
-    const stored = localStorage.getItem('theme');
-    if (stored) return stored;
     const param = new URLSearchParams(window.location.search).get('theme');
     if (param === 'light' || param === 'dark') return param;
+    const stored = localStorage.getItem('theme');
+    if (stored) return stored;
     return 'dark';
   } catch (e) { return 'dark'; }
+}
+
+function updateExternalLinks(t) {
+  document.querySelectorAll('a[href^="https://garethcooke.com"]').forEach(a => {
+    try {
+      const url = new URL(a.href);
+      url.searchParams.set('theme', t);
+      a.href = url.toString();
+    } catch (e) { }
+  });
 }
 
 function applyTheme(t) {
@@ -18,6 +28,7 @@ function applyTheme(t) {
     el.innerHTML = t === 'dark' ? SUN_SVG : MOON_SVG;
   });
   try { localStorage.setItem('theme', t); } catch (e) { }
+  updateExternalLinks(t);
   window.updateChartColors?.();
 }
 

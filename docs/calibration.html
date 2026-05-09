@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="/nav.css">
   <script>
-    (function () { try { var t = localStorage.getItem('theme') || 'dark'; document.documentElement.classList.add(t); } catch (e) { document.documentElement.classList.add('dark'); } })();
+    (function () { try { var p = new URLSearchParams(window.location.search).get('theme'); var t = (p === 'light' || p === 'dark') ? p : (localStorage.getItem('theme') || 'dark'); document.documentElement.classList.add(t); } catch (e) { document.documentElement.classList.add('dark'); } })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="/nav.js"></script>
