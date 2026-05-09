@@ -60,6 +60,11 @@ def nav_css():
     return FileResponse("docs/nav.css", media_type="text/css")
 
 
+@app.get("/design-tokens.css")
+def design_tokens_css():
+    return FileResponse("docs/design-tokens.css", media_type="text/css")
+
+
 @app.get("/nav.js")
 def nav_js():
     return FileResponse("docs/nav.js", media_type="application/javascript")
