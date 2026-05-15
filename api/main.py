@@ -70,6 +70,11 @@ def nav_js():
     return FileResponse("docs/nav.js", media_type="application/javascript")
 
 
+@app.get("/analytics.js")
+def analytics_js():
+    return FileResponse("docs/analytics.js", media_type="application/javascript")
+
+
 @app.get("/")
 def root():
     return FileResponse("docs/index.html", media_type="text/html")
