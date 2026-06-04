@@ -11,6 +11,9 @@ dist/
 build/
 .DS_Store
 
+# Excel temp files (created while file is open)
+~$*
+
 # Private notes — never commit
 frontierview_interview_prep.md
 frontierview_interview_prep.html
