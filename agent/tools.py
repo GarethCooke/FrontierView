@@ -108,7 +108,7 @@ def dispatch(name: str, args: dict) -> dict:
             return _cost_and_variance(**args)
         return _optimal_schedule(**args)
     except Exception as exc:
-        return {"error": str(exc)}
+        return {"error": f"{type(exc).__name__}: {exc}"}
 
 
 def _cost_and_variance(

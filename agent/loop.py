@@ -19,7 +19,6 @@ concise answer in plain English with the key numbers."""
 
 def run(question: str) -> str:
     messages: list[dict] = [{"role": "user", "content": question}]
-    response = None
 
     for _ in range(MAX_ITERS):
         response = llm.call(_SYSTEM_PROMPT, tools.TOOLS, messages)
@@ -30,6 +29,8 @@ def run(question: str) -> str:
 
         if response.stop_reason != "tool_use":
             answer = "\n".join(text_parts)
+            if not answer:
+                answer = f"[No text produced; stop_reason={response.stop_reason!r}]"
             trace.step("FINAL ANSWER", answer)
             return answer
 
@@ -49,11 +50,7 @@ def run(question: str) -> str:
 
         messages.append({"role": "user", "content": tool_results})
 
-    last_text = (
-        "\n".join(b.text for b in response.content if b.type == "text")
-        if response is not None
-        else ""
-    )
+    last_text = "\n".join(b.text for b in response.content if b.type == "text")
     return (
         f"Stopped after {MAX_ITERS} iterations without a final answer.\n\n"
         f"Last response: {last_text}"
