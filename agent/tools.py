@@ -50,7 +50,7 @@ TOOLS = [
                 },
                 "n_bins": {
                     "type": "integer",
-                    "description": "Number of half-hour time bins. Default: 13.",
+                    "description": "Number of time bins; each bin's length = horizon_hours / n_bins. Default: 13.",
                 },
             },
             "required": ["symbol", "order_size", "horizon_hours", "schedule_type"],
@@ -89,7 +89,7 @@ TOOLS = [
                 },
                 "n_bins": {
                     "type": "integer",
-                    "description": "Number of half-hour time bins. Default: 13.",
+                    "description": "Number of time bins; each bin's length = horizon_hours / n_bins. Default: 13.",
                 },
             },
             "required": ["symbol", "order_size", "horizon_hours", "lambda_risk"],
@@ -111,6 +111,19 @@ def dispatch(name: str, args: dict) -> dict:
         return {"error": f"{type(exc).__name__}: {exc}"}
 
 
+_ALLOWED_SYMBOLS = frozenset(SYMBOL_PARAMS)
+_SYMBOL_LIST = "AAPL, MSFT, GOOGL, JPM, SPY"
+
+
+def _run_ac(
+    symbol: str, order_size: float, horizon_hours: float, lambda_risk: float, n_bins: int
+) -> tuple:
+    params = SYMBOL_PARAMS[symbol]
+    schedule = schedule_ac_linear(n_bins, order_size, horizon_hours, params, lambda_risk)
+    cost, variance = compute_cost_variance(schedule, order_size, params, horizon_hours)
+    return schedule, cost, variance
+
+
 def _cost_and_variance(
     symbol: str,
     order_size: float,
@@ -119,22 +132,25 @@ def _cost_and_variance(
     lambda_risk: float = 1e-6,
     n_bins: int = 13,
 ) -> dict:
-    params = SYMBOL_PARAMS[symbol]
-    v_hourly = params.adv / TRADING_HOURS_PER_DAY
-    dt = horizon_hours / n_bins
+    if symbol not in _ALLOWED_SYMBOLS:
+        return {"error": f"Unknown symbol '{symbol}'. Allowed: {_SYMBOL_LIST}"}
 
-    if schedule_type == "twap":
-        schedule = schedule_twap(n_bins, order_size, v_hourly, dt)
-    elif schedule_type == "front_loaded":
-        schedule = schedule_front_loaded(n_bins, order_size, v_hourly, dt)
-    elif schedule_type == "back_loaded":
-        schedule = schedule_back_loaded(n_bins, order_size, v_hourly, dt)
-    elif schedule_type == "ac_linear":
-        schedule = schedule_ac_linear(n_bins, order_size, horizon_hours, params, lambda_risk)
+    if schedule_type == "ac_linear":
+        _, cost, variance = _run_ac(symbol, order_size, horizon_hours, lambda_risk, n_bins)
     else:
-        raise ValueError(f"Unknown schedule_type: {schedule_type!r}")
+        params = SYMBOL_PARAMS[symbol]
+        v_hourly = params.adv / TRADING_HOURS_PER_DAY
+        dt = horizon_hours / n_bins
+        if schedule_type == "twap":
+            schedule = schedule_twap(n_bins, order_size, v_hourly, dt)
+        elif schedule_type == "front_loaded":
+            schedule = schedule_front_loaded(n_bins, order_size, v_hourly, dt)
+        elif schedule_type == "back_loaded":
+            schedule = schedule_back_loaded(n_bins, order_size, v_hourly, dt)
+        else:
+            raise ValueError(f"Unknown schedule_type: {schedule_type!r}")
+        cost, variance = compute_cost_variance(schedule, order_size, params, horizon_hours)
 
-    cost, variance = compute_cost_variance(schedule, order_size, params, horizon_hours)
     return {
         "expected_cost_bps": round(cost, 4),
         "variance_bps2": round(variance, 4),
@@ -152,9 +168,10 @@ def _optimal_schedule(
     lambda_risk: float,
     n_bins: int = 13,
 ) -> dict:
-    params = SYMBOL_PARAMS[symbol]
-    schedule = schedule_ac_linear(n_bins, order_size, horizon_hours, params, lambda_risk)
-    cost, variance = compute_cost_variance(schedule, order_size, params, horizon_hours)
+    if symbol not in _ALLOWED_SYMBOLS:
+        return {"error": f"Unknown symbol '{symbol}'. Allowed: {_SYMBOL_LIST}"}
+
+    schedule, cost, variance = _run_ac(symbol, order_size, horizon_hours, lambda_risk, n_bins)
     bins = [{"bin": b, "participation_rate": round(r, 6)} for b, r in schedule]
     return {
         "expected_cost_bps": round(cost, 4),

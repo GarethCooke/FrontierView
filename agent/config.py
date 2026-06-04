@@ -6,6 +6,9 @@ load_dotenv()
 
 MODEL = "claude-haiku-4-5-20251001"
 MAX_ITERS = 8
+MAX_TOKENS = 4096
+
+assert MAX_ITERS >= 1, "MAX_ITERS must be at least 1"
 
 
 def api_key() -> str:

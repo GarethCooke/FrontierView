@@ -1,6 +1,6 @@
 import anthropic
 
-from agent.config import MODEL, api_key
+from agent.config import MAX_TOKENS, MODEL, api_key
 
 _client: anthropic.Anthropic | None = None
 
@@ -24,7 +24,7 @@ def call(
     )
     return _get_client().messages.create(
         model=MODEL,
-        max_tokens=4096,
+        max_tokens=MAX_TOKENS,
         system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
         tools=cached_tools,
         messages=messages,

@@ -59,3 +59,49 @@ def test_unknown_tool_returns_error_dict():
     assert isinstance(result, dict)
     assert "error" in result
     assert "nonexistent_tool" in result["error"]
+
+
+def test_all_schedule_types_finite_and_distinct():
+    """Fix 1 lock-in: all four schedule types must yield finite, not-all-identical cost/variance."""
+    import math
+
+    schedule_types = ["twap", "front_loaded", "back_loaded", "ac_linear"]
+    results = []
+    for stype in schedule_types:
+        result = dispatch(
+            "cost_and_variance",
+            {
+                "symbol": "AAPL",
+                "order_size": 100_000,
+                "horizon_hours": 6.5,
+                "schedule_type": stype,
+                "n_bins": 13,
+            },
+        )
+        assert "error" not in result, f"Unexpected error for {stype}: {result}"
+        cost = result["expected_cost_bps"]
+        var = result["variance_bps2"]
+        assert math.isfinite(cost), f"Non-finite cost for {stype}: {cost}"
+        assert math.isfinite(var), f"Non-finite variance for {stype}: {var}"
+        results.append((cost, var))
+
+    assert len(set(results)) > 1, "All schedule types returned identical results — format collapse?"
+
+
+def test_unknown_symbol_returns_friendly_error():
+    """An out-of-enum symbol must return a friendly error dict, not a KeyError."""
+    result = dispatch(
+        "cost_and_variance",
+        {"symbol": "BOGUS", "order_size": 100_000, "horizon_hours": 2.0, "schedule_type": "twap"},
+    )
+    assert "error" in result
+    assert "BOGUS" in result["error"]
+    assert "AAPL" in result["error"]
+
+    result = dispatch(
+        "optimal_schedule",
+        {"symbol": "BOGUS", "order_size": 100_000, "horizon_hours": 2.0, "lambda_risk": 1e-6},
+    )
+    assert "error" in result
+    assert "BOGUS" in result["error"]
+    assert "AAPL" in result["error"]

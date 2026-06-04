@@ -19,6 +19,7 @@ concise answer in plain English with the key numbers."""
 
 def run(question: str) -> str:
     messages: list[dict] = [{"role": "user", "content": question}]
+    response = None
 
     for _ in range(MAX_ITERS):
         response = llm.call(_SYSTEM_PROMPT, tools.TOOLS, messages)
@@ -26,6 +27,11 @@ def run(question: str) -> str:
         text_parts = [b.text for b in response.content if b.type == "text"]
         if text_parts:
             trace.step("REASONING", "\n".join(text_parts))
+
+        if response.stop_reason == "max_tokens":
+            partial = " ".join(text_parts)
+            trace.step("TRUNCATED", "Response cut off by max_tokens limit")
+            return f"[TRUNCATED] {partial}"
 
         if response.stop_reason != "tool_use":
             answer = "\n".join(text_parts)
