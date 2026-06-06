@@ -33,14 +33,14 @@ Loop + two tools (`cost_and_variance`, `optimal_schedule`) + CLI + tracer.
 - [x] Review fixes applied (Fix 1 schedule-format + Fix 2 truncation gate cleared). See `cc_brief_agent_phase1_review_fixes.md`.
 - [x] Merge `feature/agent-phase1` once FV suite passes on the branch.
 
-### Phase 2 — Full scaffolding · status: NEXT
+### Phase 2 — Full scaffolding · status: BUILT — merge pending
 
 The real learning phase — "everything hard lives in the scaffolding."
 
-- [ ] Full tool set beyond the two spine tools.
-- [ ] Context/transcript management as the conversation grows.
-- [ ] Harder error cases and recovery.
-- [ ] Schema validation of tool inputs (beyond the friendly symbol error).
+- [x] Full tool set: `compare_schedules`, `efficient_frontier`, `sweep`, `list_symbols`, `get_symbol_reference`, `describe_model`. DRY held; existing tools migrated to two-part result shape.
+- [x] Context/transcript management: thresholded compaction, stable prefix ordering.
+- [x] Harder error cases and recovery: full §4 recovery-policy table with tests per row.
+- [x] Schema validation: one Pydantic model per tool; schema advertised == schema validated (contract test). Semantic validation (weights sum to 1, λ>0, symbol in list, ADV sanity).
 
 ### Phase 3 — Eval harness · status: TODO
 

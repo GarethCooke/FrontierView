@@ -24,14 +24,15 @@ TRADING_HOURS_PER_DAY = 6.5
 
 
 def temporary_impact(
-    v: float, v_hourly: float, sigma_daily: float, eta: float
+    v: float, v_hourly: float, sigma_daily: float, eta: float,
+    temp_exponent: float = 0.6,
 ) -> float:
     """Power-law temporary market impact in bps, spread excluded.
 
-    power_law = η · σ_daily · (|v| / (6.5 · v_hourly))^0.6
+    power_law = η · σ_daily · (|v| / (6.5 · v_hourly))^temp_exponent
     """
     participation = abs(v) / v_hourly  # both shares/hour — correct
-    return eta * sigma_daily * (participation**0.6) * 1e4
+    return eta * sigma_daily * (participation**temp_exponent) * 1e4
 
 
 def permanent_impact(
@@ -168,6 +169,7 @@ def compute_cost_breakdown(
     order_size: float,
     params: SymbolParams,
     horizon_hours: float,
+    temp_exponent: float = 0.6,
 ) -> CostBreakdown:
     """Return a full per-component cost breakdown for the given schedule.
 
@@ -184,7 +186,7 @@ def compute_cost_breakdown(
     for _, participation in schedule:
         v = participation * v_hourly
         weight = v * dt / order_size
-        temp_cost += temporary_impact(v, v_hourly, params.sigma, params.eta) * weight
+        temp_cost += temporary_impact(v, v_hourly, params.sigma, params.eta, temp_exponent) * weight
         spread_cost += params.half_spread * weight
         # Midpoint rule: each bin pays cumulative drift from prior bins plus
         # half its own, giving schedule-invariant permanent cost.
@@ -208,9 +210,10 @@ def compute_cost_variance(
     order_size: float,
     params: SymbolParams,
     horizon_hours: float,
+    temp_exponent: float = 0.6,
 ) -> tuple[float, float]:
     """Return (expected_cost_bps, variance_bps2) for the given schedule."""
-    bd = compute_cost_breakdown(schedule, order_size, params, horizon_hours)
+    bd = compute_cost_breakdown(schedule, order_size, params, horizon_hours, temp_exponent)
     return bd.total_bps, bd.variance_bps2
 
 
