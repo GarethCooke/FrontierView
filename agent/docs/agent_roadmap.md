@@ -17,7 +17,7 @@ Single source of truth for the agent project. Update statuses as you go. Seed ea
 
 ## Workflow conventions
 
-- **Branch per phase** (`feat/agent-phaseN`); merge only when that phase's acceptance criteria _and_ the existing FV test suite pass.
+- **Branch per phase** (`feature/agent-phaseN`); merge only when that phase's acceptance criteria _and_ the existing FV test suite pass.
 - **Opus** for architecture/adversarial review, **Sonnet** for scoping/iteration, **Claude Code** for implementation.
 - **New chat at each phase boundary**, seeded with this roadmap.
 
@@ -31,7 +31,7 @@ Loop + two tools (`cost_and_variance`, `optimal_schedule`) + CLI + tracer.
 
 - [x] Spine built by CC; DRY constraint held (no core refactor needed).
 - [x] Review fixes applied (Fix 1 schedule-format + Fix 2 truncation gate cleared). See `cc_brief_agent_phase1_review_fixes.md`.
-- [x] Merge `feat/agent-phase1` once FV suite passes on the branch.
+- [x] Merge `feature/agent-phase1` once FV suite passes on the branch.
 
 ### Phase 2 — Full scaffolding · status: NEXT
 
