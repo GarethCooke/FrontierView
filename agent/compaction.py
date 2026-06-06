@@ -98,8 +98,8 @@ def _extract_facts(messages: list[dict]) -> list[dict]:
                 for block in content:
                     if isinstance(block, dict) and block.get("type") == "tool_use":
                         pending[block["id"]] = {"name": block["name"], "args": block["input"]}
-                    elif hasattr(block, "type") and block.type == "tool_use":
-                        pending[block.id] = {"name": block.name, "args": block.input}
+                    elif getattr(block, "type", None) == "tool_use":
+                        pending[getattr(block, "id")] = {"name": getattr(block, "name"), "args": getattr(block, "input")}
 
         elif msg["role"] == "user":
             content = msg["content"]
