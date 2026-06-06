@@ -47,6 +47,15 @@ _VALID_SWEEP_PARAMS = (
     "market.adv",
 )
 
+
+def _check_symbol(v: str) -> str:
+    if v not in SYMBOL_PARAMS:
+        raise ValueError(
+            f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
+        )
+    return v
+
+
 # ---------------------------------------------------------------------------
 # Pydantic input models
 # ---------------------------------------------------------------------------
@@ -63,11 +72,7 @@ class CostAndVarianceInput(BaseModel):
     @field_validator("symbol")
     @classmethod
     def _valid_symbol(cls, v: str) -> str:
-        if v not in SYMBOL_PARAMS:
-            raise ValueError(
-                f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
-            )
-        return v
+        return _check_symbol(v)
 
 
 class OptimalScheduleInput(BaseModel):
@@ -80,11 +85,7 @@ class OptimalScheduleInput(BaseModel):
     @field_validator("symbol")
     @classmethod
     def _valid_symbol(cls, v: str) -> str:
-        if v not in SYMBOL_PARAMS:
-            raise ValueError(
-                f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
-            )
-        return v
+        return _check_symbol(v)
 
 
 class CompareSchedulesInput(BaseModel):
@@ -99,11 +100,7 @@ class CompareSchedulesInput(BaseModel):
     @field_validator("symbol")
     @classmethod
     def _valid_symbol(cls, v: str) -> str:
-        if v not in SYMBOL_PARAMS:
-            raise ValueError(
-                f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
-            )
-        return v
+        return _check_symbol(v)
 
     @field_validator("schedules")
     @classmethod
@@ -148,11 +145,7 @@ class EfficientFrontierInput(BaseModel):
     @field_validator("symbol")
     @classmethod
     def _valid_symbol(cls, v: str) -> str:
-        if v not in SYMBOL_PARAMS:
-            raise ValueError(
-                f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
-            )
-        return v
+        return _check_symbol(v)
 
     @model_validator(mode="after")
     def _valid_lambda_range(self) -> "EfficientFrontierInput":
@@ -183,11 +176,7 @@ class SweepInput(BaseModel):
     @field_validator("symbol")
     @classmethod
     def _valid_symbol(cls, v: str) -> str:
-        if v not in SYMBOL_PARAMS:
-            raise ValueError(
-                f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
-            )
-        return v
+        return _check_symbol(v)
 
     @field_validator("param")
     @classmethod
@@ -216,11 +205,7 @@ class GetSymbolReferenceInput(BaseModel):
     @field_validator("symbol")
     @classmethod
     def _valid_symbol(cls, v: str) -> str:
-        if v not in SYMBOL_PARAMS:
-            raise ValueError(
-                f"Unknown symbol '{v}'. Allowed: {', '.join(_ALLOWED_SYMBOLS)}"
-            )
-        return v
+        return _check_symbol(v)
 
 
 class DescribeModelInput(BaseModel):
@@ -238,7 +223,6 @@ def _build_schema(model: type[BaseModel], symbol_field: str = "symbol") -> dict:
     """Generate JSON schema from Pydantic model, adding enum for symbol field."""
     schema = model.model_json_schema()
     schema.pop("title", None)
-    # Flatten $defs inline if possible (Anthropic accepts $defs but cleaner without)
     props = schema.get("properties", {})
     if symbol_field in props:
         props[symbol_field] = {**props[symbol_field], **_SYMBOL_ENUM_OVERRIDE}
@@ -479,20 +463,9 @@ def _cost_and_variance(inp: CostAndVarianceInput) -> dict:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
 
-    if inp.schedule_type == "ac_linear":
-        schedule = schedule_ac_linear(
-            inp.n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
-        )
-    else:
-        v_hourly = params.adv / TRADING_HOURS_PER_DAY
-        dt = inp.horizon_hours / inp.n_bins
-        if inp.schedule_type == "twap":
-            schedule = schedule_twap(inp.n_bins, inp.order_size, v_hourly, dt)
-        elif inp.schedule_type == "front_loaded":
-            schedule = schedule_front_loaded(inp.n_bins, inp.order_size, v_hourly, dt)
-        else:  # back_loaded
-            schedule = schedule_back_loaded(inp.n_bins, inp.order_size, v_hourly, dt)
-
+    schedule = _run_named_schedule(
+        inp.schedule_type, inp.n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
+    )
     bd = compute_cost_breakdown(schedule, inp.order_size, params, inp.horizon_hours)
     bins = [{"bin": b, "participation_rate": round(r, 6)} for b, r in schedule]
     detail_id = detail_store.put({"schedule_bins": bins})
@@ -544,14 +517,14 @@ def _compare_schedules(inp: CompareSchedulesInput) -> dict:
 
     results = []
     detail_schedules = {}
-    for spec in inp.schedules:
+    for idx, spec in enumerate(inp.schedules):
         if isinstance(spec, str):
             label = spec
             schedule = _run_named_schedule(
                 spec, inp.n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
             )
         else:  # explicit weight vector
-            label = f"custom({len(spec)}_bins)"
+            label = f"custom_{idx}"
             schedule = _weights_to_schedule(
                 spec, inp.n_bins, inp.order_size, inp.horizon_hours, v_hourly
             )

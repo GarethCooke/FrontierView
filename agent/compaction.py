@@ -22,7 +22,9 @@ import json
 
 from agent.config import COMPACTION_KEEP_RECENT_TURNS, COMPACTION_THRESHOLD_TOKENS
 
-# Rough token estimate: 1 token ≈ 4 chars of JSON
+# Token estimate: ~4 chars/token (English text heuristic).
+# JSON overhead means this underestimates by ~25-30% — the actual trigger fires
+# later than COMPACTION_THRESHOLD_TOKENS implies. Treat the config as approximate.
 _CHARS_PER_TOKEN = 4
 
 

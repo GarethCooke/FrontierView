@@ -13,7 +13,6 @@ Row | Error class                        | Surface    | Action
 from __future__ import annotations
 
 import json
-import time
 from unittest.mock import MagicMock, call, patch
 
 import anthropic
@@ -21,47 +20,8 @@ import pytest
 
 from agent.config import LLM_MAX_RETRIES, MAX_ITERS, TOOL_RETRY_BUDGET
 from agent.loop import run
+from agent.tests.helpers import _max_tokens_response, _text_response, _tool_response
 from agent.tools import dispatch
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _tool_response(tool_name: str, tool_id: str, tool_input: dict) -> MagicMock:
-    block = MagicMock()
-    block.type = "tool_use"
-    block.name = tool_name
-    block.id = tool_id
-    block.input = tool_input
-
-    resp = MagicMock()
-    resp.stop_reason = "tool_use"
-    resp.content = [block]
-    return resp
-
-
-def _text_response(text: str) -> MagicMock:
-    block = MagicMock()
-    block.type = "text"
-    block.text = text
-
-    resp = MagicMock()
-    resp.stop_reason = "end_turn"
-    resp.content = [block]
-    return resp
-
-
-def _max_tokens_response(text: str = "") -> MagicMock:
-    block = MagicMock()
-    block.type = "text"
-    block.text = text
-
-    resp = MagicMock()
-    resp.stop_reason = "max_tokens"
-    resp.content = [block]
-    return resp
 
 
 # ---------------------------------------------------------------------------

@@ -52,7 +52,7 @@ def run(question: str) -> str:
     retry_counts: dict[str, int] = {}
     # Duplicate-call tracking: tool_key → first-seen turn
     seen_calls: dict[str, int] = {}
-    duplicate_nudged = False
+    duplicate_nudged: set[str] = set()  # keys that have already been nudged once
 
     for iteration in range(MAX_ITERS):
 
@@ -92,8 +92,8 @@ def run(question: str) -> str:
 
             # Duplicate-call guard
             if tool_key in seen_calls:
-                if not duplicate_nudged:
-                    duplicate_nudged = True
+                if tool_key not in duplicate_nudged:
+                    duplicate_nudged.add(tool_key)
                     trace.step("DUPLICATE", f"Repeated call to '{block.name}'; nudging model")
                     result = {
                         "error": "DuplicateCall",
@@ -104,7 +104,7 @@ def run(question: str) -> str:
                         ),
                     }
                 else:
-                    # Second duplicate — abort gracefully
+                    # This tool has already been nudged once — abort gracefully
                     trace.step("ABORT", f"Repeated duplicate call to '{block.name}'; aborting")
                     last_text = "\n".join(b.text for b in response.content if b.type == "text")
                     return (

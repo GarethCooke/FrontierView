@@ -375,3 +375,25 @@ def test_large_order_carries_warning():
     )
     assert "summary" in result
     assert "warning" in result["summary"]
+
+
+# ---------------------------------------------------------------------------
+# compare_schedules label uniqueness
+# ---------------------------------------------------------------------------
+
+
+def test_compare_schedules_custom_vector_labels_are_distinct():
+    """Two same-length custom weight vectors must get distinct labels."""
+    result = dispatch(
+        "compare_schedules",
+        {
+            "symbol": "AAPL",
+            "side": "sell",
+            "order_size": 10_000,
+            "horizon_hours": 2.0,
+            "schedules": [[0.6, 0.4], [0.3, 0.7]],  # same length, different weights
+        },
+    )
+    assert "summary" in result
+    labels = [r["schedule"] for r in result["summary"]["schedules"]]
+    assert len(labels) == len(set(labels)), f"Duplicate schedule labels: {labels}"

@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from agent.compaction import (
     compact_messages,
     estimate_tokens,
@@ -136,6 +138,18 @@ def test_compact_summary_mentions_tool_facts():
 
     # Either facts are mentioned or the no-facts fallback is present
     assert "cost_and_variance" in text or "Compacted" in text
+
+
+@pytest.mark.parametrize("n_rounds", [3, 5, 8, 12, 20])
+def test_compact_always_alternates_roles(n_rounds):
+    """compact_messages must always produce a valid role-alternating sequence."""
+    msgs = _make_messages(n_rounds)
+    compacted = compact_messages(msgs)
+    for i in range(len(compacted) - 1):
+        role_a, role_b = compacted[i]["role"], compacted[i + 1]["role"]
+        assert role_a != role_b, (
+            f"n_rounds={n_rounds}: non-alternating roles at positions {i}/{i+1}: {role_a}/{role_b}"
+        )
 
 
 def test_compact_keeps_recent_turns_verbatim():
