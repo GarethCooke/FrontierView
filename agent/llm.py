@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import anthropic
 
 from agent.config import MAX_TOKENS, MODEL, api_key
