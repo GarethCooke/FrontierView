@@ -7,10 +7,8 @@ time, so the schema advertised to the model == the schema enforced at dispatch.
 """
 from __future__ import annotations
 
-import copy
-import json
 import math
-from typing import Any, Literal, Union
+from typing import Any, Literal, TypedDict, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -31,6 +29,17 @@ from api.parameters import (
     SymbolParams,
 )
 from agent import detail_store
+
+class ToolResult(TypedDict, total=False):
+    summary: dict[str, Any]
+    detail_id: str
+    error: str
+    allowed: list[str] | None
+    detail: str
+    field: str
+    got: Any
+    unreliable: bool
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -330,7 +339,7 @@ TOOLS: list[dict] = [
 # ---------------------------------------------------------------------------
 
 
-def dispatch(name: str, args: dict) -> dict:
+def dispatch(name: str, args: dict[str, Any]) -> ToolResult:
     """Validate args against the tool's Pydantic model, then call the implementation.
 
     Tool errors are returned as structured dicts the model can recover from.
@@ -459,7 +468,7 @@ def _breakdown_to_dict(bd) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _cost_and_variance(inp: CostAndVarianceInput) -> dict:
+def _cost_and_variance(inp: CostAndVarianceInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
 
@@ -484,7 +493,7 @@ def _cost_and_variance(inp: CostAndVarianceInput) -> dict:
     return {"summary": summary, "detail_id": detail_id}
 
 
-def _optimal_schedule(inp: OptimalScheduleInput) -> dict:
+def _optimal_schedule(inp: OptimalScheduleInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
 
@@ -510,7 +519,7 @@ def _optimal_schedule(inp: OptimalScheduleInput) -> dict:
     return {"summary": summary, "detail_id": detail_id}
 
 
-def _compare_schedules(inp: CompareSchedulesInput) -> dict:
+def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
     v_hourly = params.adv / TRADING_HOURS_PER_DAY
@@ -569,7 +578,7 @@ def _compare_schedules(inp: CompareSchedulesInput) -> dict:
     return {"summary": summary, "detail_id": detail_id}
 
 
-def _efficient_frontier(inp: EfficientFrontierInput) -> dict:
+def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
 
@@ -623,7 +632,7 @@ def _efficient_frontier(inp: EfficientFrontierInput) -> dict:
     return {"summary": summary, "detail_id": detail_id}
 
 
-def _sweep(inp: SweepInput) -> dict:
+def _sweep(inp: SweepInput) -> ToolResult:
     base_params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, base_params)
 
@@ -708,7 +717,7 @@ def _sweep(inp: SweepInput) -> dict:
     return {"summary": summary, "detail_id": detail_id}
 
 
-def _list_symbols(_inp: ListSymbolsInput) -> dict:
+def _list_symbols(_inp: ListSymbolsInput) -> ToolResult:
     detail_id = detail_store.put({"symbols": _ALLOWED_SYMBOLS})
     return {
         "summary": {
@@ -719,7 +728,7 @@ def _list_symbols(_inp: ListSymbolsInput) -> dict:
     }
 
 
-def _get_symbol_reference(inp: GetSymbolReferenceInput) -> dict:
+def _get_symbol_reference(inp: GetSymbolReferenceInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     ref = {
         "adv_shares_per_day": params.adv,
@@ -739,7 +748,7 @@ def _get_symbol_reference(inp: GetSymbolReferenceInput) -> dict:
     }
 
 
-def _describe_model(_inp: DescribeModelInput) -> dict:
+def _describe_model(_inp: DescribeModelInput) -> ToolResult:
     payload = {
         "model": "Almgren-Chriss (2005) market impact model",
         "provenance": "Almgren et al., 'Direct estimation of equity market impact', Risk 18(7), 2005.",
