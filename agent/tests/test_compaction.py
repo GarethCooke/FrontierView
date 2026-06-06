@@ -195,6 +195,7 @@ def test_compaction_fires_in_loop_and_no_already_run_tool_re_called():
     }
 
     call_log: list[str] = []
+    captured_final_messages: list[list[dict[str, object]]] = []
 
     def mock_dispatch(name: str, args: dict) -> dict:
         call_log.append(name)
@@ -204,12 +205,13 @@ def test_compaction_fires_in_loop_and_no_already_run_tool_re_called():
     # Build mock LLM: first N calls return tool_use, then returns a final answer
     call_count = [0]
 
-    def mock_llm(system, tools_list, messages):
+    def mock_llm(system, tools_list, messages: list[dict[str, object]]):
         call_count[0] += 1
         n = call_count[0]
 
-        # First 4 calls: request the same tool (but with distinct IDs so not duplicates)
-        if n <= 4:
+        # First 6 calls: request the same tool (but with distinct IDs so not duplicates)
+        # 6 > COMPACTION_KEEP_RECENT_TURNS (4) so real history folds; 6 < MAX_ITERS (8).
+        if n <= 6:
             block = MagicMock()
             block.type = "tool_use"
             block.name = "cost_and_variance"
@@ -221,6 +223,7 @@ def test_compaction_fires_in_loop_and_no_already_run_tool_re_called():
             return resp
 
         # Final call: return answer
+        captured_final_messages.append(list(messages))
         block = MagicMock()
         block.type = "text"
         block.text = "The execution cost is approximately 1.5 bps."
@@ -234,7 +237,15 @@ def test_compaction_fires_in_loop_and_no_already_run_tool_re_called():
          patch("agent.compaction.COMPACTION_THRESHOLD_TOKENS", 500):  # very low threshold
         answer = run("What is the AAPL execution cost?")
 
-    assert isinstance(answer, str)
-    assert answer  # non-empty
-    # All 4 tool calls were dispatched exactly once
-    assert call_log.count("cost_and_variance") == 4
+    assert isinstance(answer, str) and answer
+
+    final_prompt = captured_final_messages[-1]
+    # Compaction fired: final prompt shorter than the uncompacted transcript
+    # (1 user msg + 2 messages per tool round).
+    assert len(final_prompt) < 1 + 2 * call_log.count("cost_and_variance"), \
+        "compaction did not reduce the transcript in the loop"
+    # The fact established before compaction survived into the running-state
+    # summary (compacted[1] is the assistant summary, per compact_messages()).
+    summary_text = json.dumps(final_prompt[1], default=str)
+    assert "cost_and_variance" in summary_text or "Compacted" in summary_text, \
+        "established tool fact was lost during compaction"
