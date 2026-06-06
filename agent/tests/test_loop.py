@@ -65,6 +65,23 @@ def test_loop_stops_after_max_iters():
     assert str(MAX_ITERS) in answer
 
 
+def test_loop_handles_max_tokens():
+    """A max_tokens stop must return a [TRUNCATED] prefix rather than crashing or looping."""
+    block = MagicMock()
+    block.type = "text"
+    block.text = "Partial answer about AAPL..."
+
+    response = MagicMock()
+    response.stop_reason = "max_tokens"
+    response.content = [block]
+
+    with patch("agent.loop.llm.call", return_value=response):
+        answer = run("What is the optimal schedule for AAPL?")
+
+    assert "[TRUNCATED]" in answer
+    assert "Partial answer" in answer
+
+
 def test_loop_recovers_from_tool_error():
     """A tool error must be fed back to the model as an observation, not crash the loop."""
     error_args = {

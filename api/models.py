@@ -1,6 +1,7 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+# Keep in sync with api.parameters.SYMBOL_PARAMS
 ValidSymbol = Literal["AAPL", "MSFT", "GOOGL", "JPM", "SPY"]
 
 

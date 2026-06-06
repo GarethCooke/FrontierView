@@ -12,6 +12,7 @@ from api.main import app
 from api.parameters import ALMGREN_ETA, ALMGREN_GAMMA, SYMBOL_PARAMS
 from api.market_impact import (
     TRADING_HOURS_PER_DAY,
+    compute_cost_breakdown,
     compute_cost_variance,
     schedule_twap,
     temporary_impact,
@@ -92,6 +93,32 @@ _VALID_PAYLOAD = {
     "horizon_hours": 2.0,
     "schedule_type": "twap",
 }
+
+
+# ---------------------------------------------------------------------------
+# compute_cost_breakdown: components sum to total
+# ---------------------------------------------------------------------------
+
+
+def test_breakdown_components_sum_to_total():
+    """temporary + permanent + spread must equal total_bps, and total must match compute_cost_variance."""
+    v_hourly = _AAPL.adv / TRADING_HOURS_PER_DAY
+    sched = schedule_twap(_N_BINS, _ORDER, v_hourly, _HORIZON / _N_BINS)
+
+    bd = compute_cost_breakdown(sched, _ORDER, _AAPL, _HORIZON)
+    total_via_sum = bd.temporary_bps + bd.permanent_bps + bd.spread_bps
+
+    assert bd.total_bps == pytest.approx(total_via_sum, rel=1e-9), (
+        f"bd.total_bps={bd.total_bps:.6f} ≠ component sum {total_via_sum:.6f}"
+    )
+
+    cv_total, cv_var = compute_cost_variance(sched, _ORDER, _AAPL, _HORIZON)
+    assert bd.total_bps == pytest.approx(cv_total, rel=1e-9), (
+        f"compute_cost_breakdown total {bd.total_bps:.6f} ≠ compute_cost_variance {cv_total:.6f}"
+    )
+    assert bd.variance_bps2 == pytest.approx(cv_var, rel=1e-9), (
+        f"breakdown variance {bd.variance_bps2:.6f} ≠ compute_cost_variance variance {cv_var:.6f}"
+    )
 
 
 @pytest.mark.parametrize("bad_payload", [

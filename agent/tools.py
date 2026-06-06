@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from api.market_impact import (
     TRADING_HOURS_PER_DAY,
     compute_cost_variance,
@@ -7,6 +9,10 @@ from api.market_impact import (
     schedule_twap,
 )
 from api.parameters import SYMBOL_PARAMS
+
+_ALLOWED_SYMBOLS = frozenset(SYMBOL_PARAMS)
+_SYMBOLS_SORTED = sorted(_ALLOWED_SYMBOLS)
+_SYMBOL_LIST = ", ".join(_SYMBOLS_SORTED)
 
 TOOLS = [
     {
@@ -20,8 +26,8 @@ TOOLS = [
             "properties": {
                 "symbol": {
                     "type": "string",
-                    "description": "Ticker symbol. One of: AAPL, MSFT, GOOGL, JPM, SPY.",
-                    "enum": ["AAPL", "MSFT", "GOOGL", "JPM", "SPY"],
+                    "description": f"Ticker symbol. One of: {_SYMBOL_LIST}.",
+                    "enum": _SYMBOLS_SORTED,
                 },
                 "order_size": {
                     "type": "number",
@@ -68,8 +74,8 @@ TOOLS = [
             "properties": {
                 "symbol": {
                     "type": "string",
-                    "description": "Ticker symbol. One of: AAPL, MSFT, GOOGL, JPM, SPY.",
-                    "enum": ["AAPL", "MSFT", "GOOGL", "JPM", "SPY"],
+                    "description": f"Ticker symbol. One of: {_SYMBOL_LIST}.",
+                    "enum": _SYMBOLS_SORTED,
                 },
                 "order_size": {
                     "type": "number",
@@ -111,8 +117,10 @@ def dispatch(name: str, args: dict) -> dict:
         return {"error": f"{type(exc).__name__}: {exc}"}
 
 
-_ALLOWED_SYMBOLS = frozenset(SYMBOL_PARAMS)
-_SYMBOL_LIST = "AAPL, MSFT, GOOGL, JPM, SPY"
+def _validate_symbol(symbol: str) -> dict | None:
+    if symbol not in _ALLOWED_SYMBOLS:
+        return {"error": f"Unknown symbol '{symbol}'. Allowed: {_SYMBOL_LIST}"}
+    return None
 
 
 def _run_ac(
@@ -132,8 +140,8 @@ def _cost_and_variance(
     lambda_risk: float = 1e-6,
     n_bins: int = 13,
 ) -> dict:
-    if symbol not in _ALLOWED_SYMBOLS:
-        return {"error": f"Unknown symbol '{symbol}'. Allowed: {_SYMBOL_LIST}"}
+    if err := _validate_symbol(symbol):
+        return err
 
     if schedule_type == "ac_linear":
         _, cost, variance = _run_ac(symbol, order_size, horizon_hours, lambda_risk, n_bins)
@@ -168,8 +176,8 @@ def _optimal_schedule(
     lambda_risk: float,
     n_bins: int = 13,
 ) -> dict:
-    if symbol not in _ALLOWED_SYMBOLS:
-        return {"error": f"Unknown symbol '{symbol}'. Allowed: {_SYMBOL_LIST}"}
+    if err := _validate_symbol(symbol):
+        return err
 
     schedule, cost, variance = _run_ac(symbol, order_size, horizon_hours, lambda_risk, n_bins)
     bins = [{"bin": b, "participation_rate": round(r, 6)} for b, r in schedule]
