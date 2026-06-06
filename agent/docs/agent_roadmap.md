@@ -62,6 +62,7 @@ The differentiator; exploits the deterministic model for ground truth.
 ## Backlog (deferred, with target phase)
 
 - Trim/summarise `schedule_bins` in tool results to cut transcript tokens — P2/scale.
+- `calibrate(trades) → η, γ with standard errors` — **deferred out of P2.** FV uses fixed Almgren 2005 Table 3 values and has no fitting routine or trade dataset; adding it means new model logic + data ingestion, which breaks the wrap-existing-funcs / DRY principle. Revisit only if FV itself gains a calibration capability.
 - Prompt caching on the resent system+tools prefix (~90% off cached input) — P4/when cost matters.
 - Second provider via the `llm.py` isolation point — later, only if needed.
 - Split the agent onto a separate worker so a long request can't block the web service — later, only if traffic warrants.
