@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from agent.config import MAX_ITERS
 from agent.loop import run
 from agent.tests.helpers import _max_tokens_response, _text_response, _tool_response
 

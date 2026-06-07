@@ -26,7 +26,6 @@ from api.market_impact import (
     TRADING_HOURS_PER_DAY,
     SymbolParams,
     compute_cost_breakdown,
-    compute_cost_variance,
     generate_frontier,
     schedule_ac_linear,
     schedule_back_loaded,

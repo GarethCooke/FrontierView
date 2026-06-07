@@ -20,7 +20,6 @@ from agent.compaction import (
     estimate_tokens,
     should_compact,
 )
-from agent.config import COMPACTION_THRESHOLD_TOKENS
 from agent.loop import run
 
 

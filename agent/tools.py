@@ -16,7 +16,6 @@ from api.market_impact import (
     TRADING_HOURS_PER_DAY,
     compute_cost_breakdown,
     compute_cost_variance,
-    generate_frontier,
     schedule_ac_linear,
     schedule_back_loaded,
     schedule_front_loaded,
@@ -447,7 +446,6 @@ def _weights_to_schedule(
 ) -> list[tuple[int, float]]:
     """Convert explicit weight vector to participation schedule."""
     dt = horizon_hours / n_bins
-    n = len(weights)
     total = sum(weights)
     rates = [w / total * order_size / dt / v_hourly for w in weights]
     return list(enumerate(rates))

@@ -12,13 +12,12 @@ Row | Error class                        | Surface    | Action
 """
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock, call, patch
 
 import anthropic
 import pytest
 
-from agent.config import LLM_MAX_RETRIES, MAX_ITERS, TOOL_RETRY_BUDGET
+from agent.config import MAX_ITERS, TOOL_RETRY_BUDGET
 from agent.loop import run
 from agent.tests.helpers import _max_tokens_response, _text_response, _tool_response
 from agent.tools import dispatch
