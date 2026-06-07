@@ -26,6 +26,7 @@ from api.market_impact import (
     TRADING_HOURS_PER_DAY,
     SymbolParams,
     compute_cost_breakdown,
+    default_n_bins,
     generate_frontier,
     schedule_ac_linear,
     schedule_back_loaded,
@@ -80,10 +81,6 @@ def about():
 @app.get("/calibration")
 def calibration():
     return FileResponse("docs/calibration.html", media_type="text/html")
-
-
-def _n_bins_for(horizon_hours: float) -> int:
-    return max(2, round(horizon_hours * 2))
 
 
 _SCHEDULE_FNS = {
@@ -157,7 +154,7 @@ def regime_frontier(request: Request, payload: AnalyseRequest) -> RegimeFrontier
         )
 
     base = SYMBOL_PARAMS[symbol]
-    n_bins = _n_bins_for(payload.horizon_hours)
+    n_bins = default_n_bins(payload.horizon_hours)
 
     frontiers: dict[str, list[RegimeFrontierPoint]] = {}
     for regime, mults in _REGIMES.items():
@@ -189,7 +186,7 @@ def analyse(request: Request, payload: AnalyseRequest) -> AnalyseResponse:
         )
 
     params = SYMBOL_PARAMS[symbol]
-    n_bins = _n_bins_for(payload.horizon_hours)
+    n_bins = default_n_bins(payload.horizon_hours)
     ctx = _BinCtx(
         v_hourly=params.adv / TRADING_HOURS_PER_DAY,
         dt=payload.horizon_hours / n_bins,

@@ -18,6 +18,11 @@ from api.parameters import SYMBOL_PARAMS as SYMBOL_PARAMS, SymbolParams as Symbo
 TRADING_HOURS_PER_DAY = 6.5
 
 
+def default_n_bins(horizon_hours: float) -> int:
+    """Canonical bin count for a horizon; shared by the API and the agent."""
+    return max(2, round(horizon_hours * 2))
+
+
 # ---------------------------------------------------------------------------
 # Impact functions
 # ---------------------------------------------------------------------------

@@ -16,6 +16,7 @@ from api.market_impact import (
     TRADING_HOURS_PER_DAY,
     compute_cost_breakdown,
     compute_cost_variance,
+    default_n_bins,
     schedule_ac_linear,
     schedule_back_loaded,
     schedule_front_loaded,
@@ -28,11 +29,6 @@ from api.parameters import (
     SymbolParams,
 )
 from agent import detail_store
-
-
-def _n_bins_for(horizon_hours: float) -> int:
-    """Mirrors api.main._n_bins_for — keeps agent and web binning consistent."""
-    return max(2, round(horizon_hours * 2))
 
 
 class ToolResult(TypedDict, total=False):
@@ -492,7 +488,7 @@ def _breakdown_to_dict(bd) -> dict:
 def _cost_and_variance(inp: CostAndVarianceInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
-    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
+    n_bins = inp.n_bins if inp.n_bins is not None else default_n_bins(inp.horizon_hours)
 
     schedule = _run_named_schedule(
         inp.schedule_type, n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
@@ -518,7 +514,7 @@ def _cost_and_variance(inp: CostAndVarianceInput) -> ToolResult:
 def _optimal_schedule(inp: OptimalScheduleInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
-    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
+    n_bins = inp.n_bins if inp.n_bins is not None else default_n_bins(inp.horizon_hours)
 
     schedule = schedule_ac_linear(
         n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
@@ -546,7 +542,7 @@ def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
     v_hourly = params.adv / TRADING_HOURS_PER_DAY
-    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
+    n_bins = inp.n_bins if inp.n_bins is not None else default_n_bins(inp.horizon_hours)
 
     results = []
     detail_schedules = {}
@@ -605,7 +601,7 @@ def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
 def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
-    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
+    n_bins = inp.n_bins if inp.n_bins is not None else default_n_bins(inp.horizon_hours)
 
     lo, hi = inp.lambda_range
     log_lo = math.log10(lo)
@@ -660,7 +656,7 @@ def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
 def _sweep(inp: SweepInput) -> ToolResult:
     base_params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, base_params)
-    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
+    n_bins = inp.n_bins if inp.n_bins is not None else default_n_bins(inp.horizon_hours)
 
     lo, hi = inp.param_range
     values = [lo + i * (hi - lo) / (inp.n_points - 1) for i in range(inp.n_points)]

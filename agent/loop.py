@@ -3,14 +3,15 @@ Agent execution loop.
 
 Recovery-policy table (§4 of the Phase 2 brief):
 
-  Error class                               Surface      Handler          Action                                    Retry budget
-  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Invalid tool arg / unknown sweep param    tool-error   dispatch()       structured error dict → model             ~2 self-corrects
-  Numerical blow-up / order ≫ ADV           tool-error   tool layer       structured warning + unreliable=True       n/a (warn-and-proceed)
-  Unknown tool / malformed tool-use JSON    loop         _resolve_block   structured error with valid-tool list      bounded
-  Provider 429 / timeout / 5xx             loop         llm.call()       exponential backoff (llm.py)               LLM_MAX_RETRIES
-  Over-length response (max_tokens)        loop         harness          trigger compaction, retry                  capped (MAX_ITERS)
-  Repeated identical tool call             loop         _is_duplicate    nudge once, then graceful abort            1 nudge
+  Error class                               Surface      Handler          Action                                                                                          Retry budget
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Invalid tool arg / unknown sweep param    tool-error   dispatch()       structured error dict → model                                                                   ~2 self-corrects
+  Numerical blow-up / order ≫ ADV           tool-error   tool layer       structured warning in summary (warn-and-proceed)                                                n/a
+  Unknown tool / malformed tool-use JSON    loop         _resolve_block   structured error with valid-tool list                                                           bounded
+  Provider 429 / timeout / 5xx             loop         llm.call()       exponential backoff (llm.py)                                                                    LLM_MAX_RETRIES
+  Over-length response (max_tokens)        loop         harness          raise output budget and retry; compact only if over threshold; return partial + [response truncated] after the retry cap  capped (_MAX_TRUNCATION_RETRIES)
+  Impl exception in tool handler            loop         dispatch()       structured ToolExecutionError dict → model                                                      ~2 self-corrects
+  Repeated identical tool call             loop         _is_duplicate    nudge once, then graceful abort                                                                 1 nudge
 """
 from __future__ import annotations
 

@@ -401,7 +401,7 @@ def test_custom_uniform_weights_k5_equals_twap_k5():
         "schedule_type": "twap", "n_bins": k,
     })
 
-    # compare_schedules with the uniform vector; default n_bins (None → _n_bins_for)
+    # compare_schedules with the uniform vector; default n_bins (None → default_n_bins)
     # is irrelevant to the custom-vector path — only len(weights) should matter
     dummy = [0.5, 0.5]  # second schedule to satisfy min_length=2 constraint
     compare_result = dispatch("compare_schedules", {

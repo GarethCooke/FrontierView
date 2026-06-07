@@ -33,7 +33,7 @@ Loop + two tools (`cost_and_variance`, `optimal_schedule`) + CLI + tracer.
 - [x] Review fixes applied (Fix 1 schedule-format + Fix 2 truncation gate cleared). See `cc_brief_agent_phase1_review_fixes.md`.
 - [x] Merged to `master` (FV suite green on branch).
 
-### Phase 2 — Full scaffolding · status: BUILT + reviewed — merge pending
+### Phase 2 — Full scaffolding · status: MERGED
 
 The real learning phase — "everything hard lives in the scaffolding."
 
@@ -41,8 +41,9 @@ The real learning phase — "everything hard lives in the scaffolding."
 - [x] Context/transcript management: tool-result shaping + thresholded compaction (running-state preserves established facts) + stable prefix ordering.
 - [x] Harder error cases and recovery: two-surface model (tool-errors → model, loop-errors → harness); backoff, duplicate-call guard, retry budgets.
 - [x] Schema validation: one Pydantic model per tool, JSON schema generated from it, contract test (advertised == validated).
-- [x] Review passed — sweep caveat reaches `summary`, read-only holds on the structural param, default-path covered, market branch genuinely varies. Compaction integration test hardened to assert fact-survival. See `cc_brief_agent_phase2_scaffolding.md` + `cc_brief_agent_phase2_compaction_test_fix.md`.
-- [ ] Merge `feature/agent-phase2` once FV suite green on the branch (optional Opus diff pass first — undecided).
+- [x] Probe review passed + compaction integration test hardened to assert fact-survival. See `cc_brief_agent_phase2_scaffolding.md` + `cc_brief_agent_phase2_compaction_test_fix.md`.
+- [x] Opus adversarial diff pass + remediation: F1 (max_tokens budget-raise recovery), F2 (custom-weight bin width), M1–M3, then `_n_bins_for` single-sourced to `api.market_impact.default_n_bins`. See `cc_brief_agent_phase2_review_fixes.md` + `cc_brief_agent_phase2_premerge_cleanup.md`.
+- [x] Merged to `master` (agent suite + FV suite green on the branch).
 
 ### Phase 3 — Eval harness · status: NEXT
 
@@ -63,9 +64,9 @@ The differentiator; exploits the deterministic model for ground truth.
 
 ## Backlog (deferred, with target phase)
 
-- Trim/summarise `schedule_bins` in tool results to cut transcript tokens — P2/scale.
+- Trim `schedule_bins` from model-visible results — **shipped in P2** via the summary + out-of-band detail-store split (bin/frontier arrays never re-enter the transcript).
 - `calibrate` — **partially unblocked (reason corrected).** FV _does_ have a real WLS fitting routine (`fit_parameters`), so the old "no fitting routine" reason was wrong. But FV's calibration is **synthetic recovery** — it generates fills from the reference η/γ and recovers them — not a fit to supplied trades. A `calibrate(trades)` tool still needs real data ingestion FV lacks, so that version stays deferred. A _recovery-demo_ tool wrapping the existing synthetic routine in-process is feasible and read-only, but must be framed as synthetic recovery, not market calibration (mandatory caveat, like `sweep`'s structural caveat). Optional; lower priority than P3.
-- Prompt caching on the resent system+tools prefix (~90% off cached input) — P4/when cost matters.
+- Prompt caching on the system+tools prefix — **shipped early in P2** (`llm.py` marks the system block + last tool `cache_control: ephemeral`; the stable prefix ordering supports it).
 - Second provider via the `llm.py` isolation point — later, only if needed.
 - Split the agent onto a separate worker so a long request can't block the web service — later, only if traffic warrants.
 - Keep the cost model's rates current as providers change pricing — ongoing.
@@ -82,4 +83,6 @@ The differentiator; exploits the deterministic model for ground truth.
 - `agent/docs/briefs/cc_brief_agent_phase1_review_fixes.md` — review remediation brief.
 - `agent/docs/briefs/cc_brief_agent_phase2_scaffolding.md` — Phase 2 build brief.
 - `agent/docs/briefs/cc_brief_agent_phase2_compaction_test_fix.md` — compaction test hardening brief.
+- `agent/docs/briefs/cc_brief_agent_phase2_review_fixes.md` — adversarial-review remediation brief (F1/F2/M1–M3).
+- `agent/docs/briefs/cc_brief_agent_phase2_premerge_cleanup.md` — binning single-source + recovery-docstring refresh.
 - `agent/docs/frontierview_agent_cost_model.xlsx` — driveable per-query / monthly cost model across providers.
