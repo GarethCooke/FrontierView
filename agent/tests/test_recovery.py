@@ -18,7 +18,7 @@ import anthropic
 import pytest
 
 from agent.config import MAX_ITERS, TOOL_RETRY_BUDGET
-from agent.loop import run
+from agent.loop import _MAX_TRUNCATION_RETRIES, _TRUNCATION_RAISED_BUDGET, run
 from agent.tests.helpers import _max_tokens_response, _text_response, _tool_response
 from agent.tools import dispatch
 
@@ -66,12 +66,12 @@ def test_row1_retry_budget_exhausted():
         for i in range(TOOL_RETRY_BUDGET + 1)
     ] + [_text_response("I cannot compute this.")]
 
-    with patch("agent.loop.llm.call", side_effect=responses):
+    with patch("agent.loop.llm.call", side_effect=responses) as mock_call:
         answer = run("What is the cost for BOGUS?")
 
-    # Should get some kind of answer without crashing
-    assert answer is not None
-    assert isinstance(answer, str)
+    # Same (name, args) key → duplicate detection fires and aborts before MAX_ITERS
+    assert mock_call.call_count < MAX_ITERS
+    assert "aborted" in answer.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -117,8 +117,8 @@ def test_row3_unknown_tool_fed_back_to_model():
     with patch("agent.loop.llm.call", side_effect=responses):
         answer = run("What is the optimal schedule?")
 
-    assert isinstance(answer, str)
-    assert answer  # non-empty
+    # Model recovered after the UnknownTool error was fed back
+    assert "correct answer" in answer.lower()
 
 
 def test_row3_unknown_tool_error_contains_allowed_list():
@@ -180,6 +180,24 @@ def test_row4_all_retries_exhausted_raises():
 # Row 5 — Over-length response (max_tokens)
 # Loop should compact and retry rather than returning [TRUNCATED].
 # ---------------------------------------------------------------------------
+
+
+def test_row5_always_max_tokens_returns_truncated_note():
+    """When every call returns max_tokens the loop must terminate with [response truncated],
+    not the generic MAX_ITERS message, and retries must use a raised output budget."""
+    with patch("agent.loop.llm.call", return_value=_max_tokens_response("Partial...")) as mock_call:
+        answer = run("Tell me about AAPL costs.")
+
+    assert "[response truncated]" in answer
+    assert "Stopped after" not in answer
+
+    calls = mock_call.call_args_list
+    assert len(calls) == _MAX_TRUNCATION_RETRIES + 1
+    # All retries (calls after the first) must use the raised budget
+    for c in calls[1:]:
+        assert c.kwargs.get("max_tokens") == _TRUNCATION_RAISED_BUDGET
+    # First call uses the default (None → MAX_TOKENS internally)
+    assert calls[0].kwargs.get("max_tokens") is None
 
 
 def test_row5_max_tokens_triggers_compaction_and_retry():
@@ -244,9 +262,8 @@ def test_row6_duplicate_first_occurrence_gets_nudge_result():
     with patch("agent.loop.llm.call", side_effect=responses):
         answer = run("What is the optimal schedule?")
 
-    # Should complete without aborting
-    assert "first call" in answer.lower() or isinstance(answer, str)
-    assert answer
+    # Model self-corrected after duplicate nudge — used the established result
+    assert "first call" in answer.lower()
 
 
 # ---------------------------------------------------------------------------

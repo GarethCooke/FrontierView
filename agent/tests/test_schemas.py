@@ -1,6 +1,6 @@
 """Schema contract test: schema advertised to the model == schema validated at dispatch."""
 
-from agent.tools import TOOLS, _INPUT_MODELS, _build_schema
+from agent.tools import TOOLS, _EXTRA_FIELD_ENUMS, _INPUT_MODELS, _SCHEMAS, _build_schema
 
 
 def test_schema_contract_all_tools():
@@ -15,7 +15,7 @@ def test_schema_contract_all_tools():
 
     for name, model_cls in _INPUT_MODELS.items():
         advertised = tool_map[name]
-        derived = _build_schema(model_cls)
+        derived = _build_schema(model_cls, field_enums=_EXTRA_FIELD_ENUMS.get(name))
         assert advertised == derived, (
             f"Schema mismatch for tool '{name}'.\n"
             f"  Advertised: {advertised}\n"
@@ -25,10 +25,8 @@ def test_schema_contract_all_tools():
 
 def test_no_hand_written_schema_copy():
     """Confirms the TOOLS list is built from _INPUT_MODELS, not maintained separately."""
-    from agent.tools import _SCHEMAS
-
     for name, schema in _SCHEMAS.items():
         model_cls = _INPUT_MODELS[name]
-        assert schema == _build_schema(model_cls), (
+        assert schema == _build_schema(model_cls, field_enums=_EXTRA_FIELD_ENUMS.get(name)), (
             f"_SCHEMAS['{name}'] diverged from _build_schema({model_cls.__name__})"
         )

@@ -184,6 +184,65 @@ def _fat_response(n_chars: int = 2000) -> str:
     })
 
 
+def test_compaction_preserves_sweep_cost_delta_and_caveat():
+    """Compacting a transcript that contains a sweep result must preserve cost_delta_bps
+    and the structural caveat in the running-state summary (M1)."""
+    sweep_summary = {
+        "param": "structural.temp_exponent",
+        "param_class": "structural",
+        "schedule": "twap",
+        "param_range": [0.4, 0.8],
+        "cost_at_range_start_bps": 5.0,
+        "cost_at_range_end_bps": 8.5,
+        "cost_delta_bps": 3.5,
+        "n_points": 5,
+        "symbol": "AAPL",
+        "side": "sell",
+        "order_size": 100_000,
+        "horizon_hours": 2.0,
+        "caveat": "Sweeping structural parameters changes model identity.",
+    }
+
+    msgs = [{"role": "user", "content": "Sensitivity analysis please."}]
+    sweep_id = "toolu_sweep_001"
+    msgs.append(_make_tool_call_turn("sweep", sweep_id, {
+        "symbol": "AAPL", "side": "sell", "order_size": 100_000,
+        "horizon_hours": 2.0, "schedule": "twap",
+        "param": "structural.temp_exponent", "param_range": [0.4, 0.8],
+    }))
+    msgs.append(_make_tool_result_turn(sweep_id, {
+        "summary": sweep_summary,
+        "detail_id": "detail-sweep",
+    }))
+
+    # Pad enough turns so compaction folds the sweep into the summary
+    for i in range(8):
+        tid = f"t{i}"
+        msgs.append(_make_tool_call_turn("cost_and_variance", tid, {
+            "symbol": "AAPL", "order_size": 100_000,
+            "horizon_hours": 2.0, "schedule_type": "twap",
+        }))
+        msgs.append(_make_tool_result_turn(tid, {
+            "summary": {"expected_cost_bps": 1.5, "variance_bps2": 0.4},
+            "detail_id": f"d{i}",
+        }))
+
+    compacted = compact_messages(msgs)
+
+    summary_content = compacted[1]["content"]
+    text = (
+        " ".join(
+            b.get("text", "") if isinstance(b, dict) else getattr(b, "text", "")
+            for b in summary_content
+        )
+        if isinstance(summary_content, list)
+        else str(summary_content)
+    )
+
+    assert "cost_delta_bps" in text, "cost_delta_bps must survive compaction"
+    assert "caveat" in text, "structural caveat must survive compaction"
+
+
 def test_compaction_fires_in_loop_and_no_already_run_tool_re_called():
     """Multi-tool loop: compaction fires, established facts preserved, no re-call."""
     tool_args = {
@@ -204,7 +263,7 @@ def test_compaction_fires_in_loop_and_no_already_run_tool_re_called():
     # Build mock LLM: first N calls return tool_use, then returns a final answer
     call_count = [0]
 
-    def mock_llm(system, tools_list, messages: list[dict[str, object]]):
+    def mock_llm(system, tools_list, messages: list[dict[str, object]], **kwargs):
         call_count[0] += 1
         n = call_count[0]
 

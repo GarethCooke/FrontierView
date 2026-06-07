@@ -19,7 +19,10 @@ import json
 
 from agent import llm, tools, trace
 from agent.compaction import compact_messages, should_compact
-from agent.config import MAX_ITERS, TOOL_RETRY_BUDGET
+from agent.config import MAX_ITERS, MAX_TOKENS, TOOL_RETRY_BUDGET
+
+_MAX_TRUNCATION_RETRIES = 2
+_TRUNCATION_RAISED_BUDGET = min(MAX_TOKENS * 2, 8192)
 
 _SYSTEM_PROMPT = """You are a quantitative analyst assistant for FrontierView, \
 a pre-trade market impact analysis tool based on the Almgren-Chriss (2005) model.
@@ -54,6 +57,9 @@ def run(question: str) -> str:
     seen_calls: dict[str, int] = {}
     duplicate_nudged: set[str] = set()  # keys that have already been nudged once
 
+    truncation_retries = 0
+    current_max_tokens: int | None = None  # None = use default MAX_TOKENS
+
     for iteration in range(MAX_ITERS):
 
         # Compact if the transcript has grown too large (before sending to model)
@@ -61,16 +67,28 @@ def run(question: str) -> str:
             messages = compact_messages(messages)
             trace.step("COMPACTION", f"Transcript compacted at iteration {iteration}")
 
-        response = llm.call(_SYSTEM_PROMPT, tools.TOOLS, messages)
+        response = llm.call(_SYSTEM_PROMPT, tools.TOOLS, messages, max_tokens=current_max_tokens)
 
         text_parts = [b.text for b in response.content if b.type == "text"]
         if text_parts:
             trace.step("REASONING", "\n".join(text_parts))
 
-        # Over-length: compact and retry (counts toward MAX_ITERS)
+        # Over-length output: raise budget and retry; return truncated after cap
         if response.stop_reason == "max_tokens":
-            messages = compact_messages(messages)
-            trace.step("MAX_TOKENS", "Response truncated; compacted and will retry")
+            if should_compact(messages):
+                messages = compact_messages(messages)
+            truncation_retries += 1
+            if truncation_retries > _MAX_TRUNCATION_RETRIES:
+                partial = "\n".join(text_parts)
+                note = "[response truncated]"
+                trace.step("MAX_TOKENS", "Truncation cap exceeded; returning partial answer")
+                return f"{partial}\n{note}" if partial else note
+            current_max_tokens = _TRUNCATION_RAISED_BUDGET
+            trace.step(
+                "MAX_TOKENS",
+                f"Response truncated; raised output budget to {current_max_tokens} "
+                f"(retry {truncation_retries}/{_MAX_TRUNCATION_RETRIES})",
+            )
             continue
 
         if response.stop_reason != "tool_use":

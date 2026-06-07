@@ -148,15 +148,15 @@ def _parse_tool_content(content) -> dict:
 
 
 def _format_fact(fact: dict) -> str:
-    """Format a single tool fact into a human-readable line."""
+    """Format a single tool fact into a human-readable line.
+
+    Dumps the full summary so no fields (cost_delta_bps, caveat, etc.) are lost.
+    """
     tool = fact["tool"]
     args = fact["args"]
     result = fact.get("result", {})
     summary = result.get("summary", result)
 
-    # Extract the most salient numbers
-    cost = summary.get("expected_cost_bps") or summary.get("cheapest_cost_bps")
-    var = summary.get("variance_bps2")
     symbol = args.get("symbol", "?")
     order = args.get("order_size", "?")
     horizon = args.get("horizon_hours", "?")
@@ -169,17 +169,7 @@ def _format_fact(fact: dict) -> str:
     if lam is not None:
         key_args += f", λ={lam:.2e}"
 
-    line = f"- {tool}({key_args})"
-    if cost is not None:
-        line += f": cost={cost}bps"
-    if var is not None:
-        line += f", var={var}bps²"
-
-    warning = summary.get("warning")
-    if warning:
-        line += f" [WARNING: {warning}]"
-
-    return line
+    return f"- {tool}({key_args}): {json.dumps(summary, default=str)}"
 
 
 def _build_summary_text(facts: list[dict]) -> str:

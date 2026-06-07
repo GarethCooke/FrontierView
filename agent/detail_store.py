@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import uuid
+from collections import OrderedDict
 
-_store: dict[str, dict] = {}
+_MAX_ENTRIES = 256
+
+# TODO: per-request scoping + locking when the /agent endpoint lands (Phase 4)
+_store: OrderedDict[str, dict] = OrderedDict()
 
 
 def put(payload: dict) -> str:
     key = str(uuid.uuid4())
     _store[key] = payload
+    if len(_store) > _MAX_ENTRIES:
+        _store.popitem(last=False)  # FIFO: evict oldest entry
     return key
 
 

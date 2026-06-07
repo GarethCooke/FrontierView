@@ -386,6 +386,58 @@ def test_large_order_carries_warning():
 # ---------------------------------------------------------------------------
 
 
+def test_custom_uniform_weights_k5_equals_twap_k5():
+    """Uniform custom weight vector of length k must match TWAP with n_bins=k (F2).
+
+    Uses k=5 (≠ default n_bins=13) so the pre-fix bug—where _weights_to_schedule
+    derived dt from n_bins rather than len(weights)—would produce a wrong cost.
+    """
+    k = 5
+    uniform = [1.0 / k] * k  # uniform weights summing to 1.0
+
+    # Reference: TWAP with k bins
+    twap_result = dispatch("cost_and_variance", {
+        "symbol": "AAPL", "order_size": 100_000, "horizon_hours": 2.0,
+        "schedule_type": "twap", "n_bins": k,
+    })
+
+    # compare_schedules with the uniform vector; default n_bins (None → _n_bins_for)
+    # is irrelevant to the custom-vector path — only len(weights) should matter
+    dummy = [0.5, 0.5]  # second schedule to satisfy min_length=2 constraint
+    compare_result = dispatch("compare_schedules", {
+        "symbol": "AAPL", "side": "sell", "order_size": 100_000, "horizon_hours": 2.0,
+        "schedules": [uniform, dummy],
+    })
+
+    assert "summary" in compare_result and "summary" in twap_result
+    compare_summary = compare_result["summary"]  # type: ignore[typeddict-item]
+    twap_summary = twap_result["summary"]  # type: ignore[typeddict-item]
+    custom_row = next(
+        r for r in compare_summary["schedules"] if r["schedule"] == "custom_0"
+    )
+    assert abs(custom_row["expected_cost_bps"] - twap_summary["expected_cost_bps"]) < 1e-6, (
+        f"custom uniform-{k} cost {custom_row['expected_cost_bps']} != "
+        f"twap-{k} cost {twap_summary['expected_cost_bps']}"
+    )
+
+
+def test_tool_execution_error_no_unreliable_flag():
+    """A genuine impl exception must return ToolExecutionError without unreliable flag (M2)."""
+    from unittest.mock import patch as _patch
+
+    with _patch("agent.tools._cost_and_variance", side_effect=RuntimeError("impl broke")):
+        result = dispatch("cost_and_variance", {
+            "symbol": "AAPL", "order_size": 100_000, "horizon_hours": 2.0,
+            "schedule_type": "twap",
+        })
+
+    assert result.get("error") == "ToolExecutionError"
+    assert "unreliable" not in result
+    assert "Traceback" not in str(result)
+    assert "File " not in str(result)
+    assert "impl broke" in result.get("detail", "")
+
+
 def test_compare_schedules_custom_vector_labels_are_distinct():
     """Two same-length custom weight vectors must get distinct labels."""
     result = dispatch(

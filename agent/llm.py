@@ -23,6 +23,8 @@ def call(
     system_prompt: str,
     tools: list[dict],
     messages: list[dict],
+    *,
+    max_tokens: int | None = None,
 ) -> anthropic.types.Message:
     """Call the model with exponential backoff retry on provider 429/5xx."""
     cached_tools = (
@@ -31,13 +33,14 @@ def call(
         else tools
     )
     system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
+    effective_max_tokens = MAX_TOKENS if max_tokens is None else max_tokens
 
     last_exc: Exception | None = None
     for attempt in range(LLM_MAX_RETRIES):
         try:
             return _get_client().messages.create(
                 model=MODEL,
-                max_tokens=MAX_TOKENS,
+                max_tokens=effective_max_tokens,
                 system=system,  # type: ignore[arg-type]
                 tools=cached_tools,  # type: ignore[arg-type]
                 messages=messages,  # type: ignore[arg-type]

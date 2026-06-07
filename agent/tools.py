@@ -8,7 +8,7 @@ time, so the schema advertised to the model == the schema enforced at dispatch.
 from __future__ import annotations
 
 import math
-from typing import Any, Literal, TypedDict, Union, cast
+from typing import Any, Literal, Optional, TypedDict, Union, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -28,6 +28,12 @@ from api.parameters import (
     SymbolParams,
 )
 from agent import detail_store
+
+
+def _n_bins_for(horizon_hours: float) -> int:
+    """Mirrors api.main._n_bins_for — keeps agent and web binning consistent."""
+    return max(2, round(horizon_hours * 2))
+
 
 class ToolResult(TypedDict, total=False):
     summary: dict[str, Any]
@@ -75,7 +81,7 @@ class CostAndVarianceInput(BaseModel):
     horizon_hours: float = Field(gt=0)
     schedule_type: Literal["twap", "front_loaded", "back_loaded", "ac_linear"]
     lambda_risk: float = Field(default=1e-6, gt=0)
-    n_bins: int = Field(default=13, ge=1)
+    n_bins: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("symbol")
     @classmethod
@@ -88,7 +94,7 @@ class OptimalScheduleInput(BaseModel):
     order_size: float = Field(gt=0)
     horizon_hours: float = Field(gt=0)
     lambda_risk: float = Field(gt=0)
-    n_bins: int = Field(default=13, ge=1)
+    n_bins: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("symbol")
     @classmethod
@@ -103,7 +109,7 @@ class CompareSchedulesInput(BaseModel):
     horizon_hours: float = Field(gt=0)
     schedules: list[Union[str, list[float]]] = Field(min_length=2)
     lambda_risk: float = Field(default=1e-6, gt=0, description="λ for ac_linear entries")
-    n_bins: int = Field(default=13, ge=1)
+    n_bins: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("symbol")
     @classmethod
@@ -148,7 +154,7 @@ class EfficientFrontierInput(BaseModel):
         description="[lambda_min, lambda_max] — log-spaced grid sampled between these bounds.",
     )
     n_points: int = Field(default=17, ge=3, le=50)
-    n_bins: int = Field(default=13, ge=1)
+    n_bins: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("symbol")
     @classmethod
@@ -179,7 +185,7 @@ class SweepInput(BaseModel):
     )
     n_points: int = Field(default=10, ge=2, le=50)
     lambda_risk: float = Field(default=1e-6, gt=0, description="λ for ac_linear schedule")
-    n_bins: int = Field(default=13, ge=1)
+    n_bins: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("symbol")
     @classmethod
@@ -226,18 +232,32 @@ class DescribeModelInput(BaseModel):
 
 _SYMBOL_ENUM_OVERRIDE = {"enum": _ALLOWED_SYMBOLS}
 
+# Extra per-field enum injections for validator-only fields that need schema-level enums.
+# Keyed by tool name → {field_name: [enum_values]}.
+_EXTRA_FIELD_ENUMS: dict[str, dict[str, list]] = {
+    "sweep": {"param": list(_VALID_SWEEP_PARAMS)},
+}
 
-def _build_schema(model: type[BaseModel], symbol_field: str = "symbol") -> dict:
-    """Generate JSON schema from Pydantic model, adding enum for symbol field."""
+
+def _build_schema(
+    model: type[BaseModel],
+    symbol_field: str = "symbol",
+    field_enums: dict[str, list] | None = None,
+) -> dict:
+    """Generate JSON schema from Pydantic model, adding enum for symbol and any extra fields."""
     schema = model.model_json_schema()
     schema.pop("title", None)
     props = schema.get("properties", {})
     if symbol_field in props:
         props[symbol_field] = {**props[symbol_field], **_SYMBOL_ENUM_OVERRIDE}
+    if field_enums:
+        for field, values in field_enums.items():
+            if field in props:
+                props[field] = {**props[field], "enum": values}
     return schema
 
 
-# Mapping: tool name → (Pydantic model, schema_dict)
+# Mapping: tool name → Pydantic model
 _INPUT_MODELS: dict[str, type[BaseModel]] = {
     "cost_and_variance": CostAndVarianceInput,
     "optimal_schedule": OptimalScheduleInput,
@@ -249,9 +269,10 @@ _INPUT_MODELS: dict[str, type[BaseModel]] = {
     "describe_model": DescribeModelInput,
 }
 
-# Pre-computed schemas (one per tool, generated from models)
+# Pre-computed schemas (one per tool, generated from models + extra enum injections)
 _SCHEMAS: dict[str, dict] = {
-    name: _build_schema(model) for name, model in _INPUT_MODELS.items()
+    name: _build_schema(model, field_enums=_EXTRA_FIELD_ENUMS.get(name))
+    for name, model in _INPUT_MODELS.items()
 }
 
 # ---------------------------------------------------------------------------
@@ -318,7 +339,7 @@ TOOLS: list[dict] = [
     {
         "name": "get_symbol_reference",
         "description": (
-            "Return stored reference values (ADV, σ, price, spread) for a symbol. "
+            "Return stored reference values (ADV, σ, spread) for a symbol. "
             "NOTE: stored reference values only — not a live feed."
         ),
         "input_schema": _SCHEMAS["get_symbol_reference"],
@@ -390,9 +411,8 @@ def dispatch(name: str, args: dict[str, Any]) -> ToolResult:
         return impl_map[name](validated)
     except Exception as exc:
         return {
-            "error": type(exc).__name__,
+            "error": "ToolExecutionError",
             "detail": str(exc),
-            "unreliable": True,
         }
 
 
@@ -439,13 +459,16 @@ def _run_named_schedule(
 
 def _weights_to_schedule(
     weights: list[float],
-    n_bins: int,
     order_size: float,
     horizon_hours: float,
     v_hourly: float,
 ) -> list[tuple[int, float]]:
-    """Convert explicit weight vector to participation schedule."""
-    dt = horizon_hours / n_bins
+    """Convert explicit weight vector to participation schedule.
+
+    The weight vector defines its own bin count; n_bins does not enter this path.
+    """
+    n = len(weights)
+    dt = horizon_hours / n
     total = sum(weights)
     rates = [w / total * order_size / dt / v_hourly for w in weights]
     return list(enumerate(rates))
@@ -469,9 +492,10 @@ def _breakdown_to_dict(bd) -> dict:
 def _cost_and_variance(inp: CostAndVarianceInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
+    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
 
     schedule = _run_named_schedule(
-        inp.schedule_type, inp.n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
+        inp.schedule_type, n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
     )
     bd = compute_cost_breakdown(schedule, inp.order_size, params, inp.horizon_hours)
     bins = [{"bin": b, "participation_rate": round(r, 6)} for b, r in schedule]
@@ -494,9 +518,10 @@ def _cost_and_variance(inp: CostAndVarianceInput) -> ToolResult:
 def _optimal_schedule(inp: OptimalScheduleInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
+    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
 
     schedule = schedule_ac_linear(
-        inp.n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
+        n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
     )
     bd = compute_cost_breakdown(schedule, inp.order_size, params, inp.horizon_hours)
     bins = [{"bin": b, "participation_rate": round(r, 6)} for b, r in schedule]
@@ -521,6 +546,7 @@ def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
     v_hourly = params.adv / TRADING_HOURS_PER_DAY
+    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
 
     results = []
     detail_schedules = {}
@@ -528,12 +554,12 @@ def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
         if isinstance(spec, str):
             label = spec
             schedule = _run_named_schedule(
-                spec, inp.n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
+                spec, n_bins, inp.order_size, inp.horizon_hours, params, inp.lambda_risk
             )
         else:  # explicit weight vector
             label = f"custom_{idx}"
             schedule = _weights_to_schedule(
-                spec, inp.n_bins, inp.order_size, inp.horizon_hours, v_hourly
+                spec, inp.order_size, inp.horizon_hours, v_hourly
             )
 
         bd = compute_cost_breakdown(schedule, inp.order_size, params, inp.horizon_hours)
@@ -579,6 +605,7 @@ def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
 def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
     params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, params)
+    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
 
     lo, hi = inp.lambda_range
     log_lo = math.log10(lo)
@@ -591,7 +618,7 @@ def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
     points = []
     for lam in lambdas:
         schedule = schedule_ac_linear(
-            inp.n_bins, inp.order_size, inp.horizon_hours, params, lam
+            n_bins, inp.order_size, inp.horizon_hours, params, lam
         )
         cost, var = compute_cost_variance(schedule, inp.order_size, params, inp.horizon_hours)
         points.append({
@@ -633,6 +660,7 @@ def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
 def _sweep(inp: SweepInput) -> ToolResult:
     base_params = SYMBOL_PARAMS[inp.symbol]
     warning = _adv_warning(inp.order_size, base_params)
+    n_bins = inp.n_bins if inp.n_bins is not None else _n_bins_for(inp.horizon_hours)
 
     lo, hi = inp.param_range
     values = [lo + i * (hi - lo) / (inp.n_points - 1) for i in range(inp.n_points)]
@@ -676,7 +704,7 @@ def _sweep(inp: SweepInput) -> ToolResult:
 
         schedule = _run_named_schedule(
             inp.schedule,
-            inp.n_bins,
+            n_bins,
             inp.order_size,
             inp.horizon_hours,
             p_copy,
@@ -709,7 +737,7 @@ def _sweep(inp: SweepInput) -> ToolResult:
         "horizon_hours": inp.horizon_hours,
     }
     if structural_note:
-        summary["structural_caveat"] = structural_note
+        summary["caveat"] = structural_note
     if warning:
         summary["warning"] = warning
     return {"summary": summary, "detail_id": detail_id}
