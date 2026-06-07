@@ -22,6 +22,14 @@ EVAL_MODEL = MODEL        # switch here for Flash-dev → Haiku-confirm; one-lin
 if MAX_ITERS < 1:
     raise ValueError(f"MAX_ITERS must be at least 1, got {MAX_ITERS}")
 
+# Layer 3 — LLM-as-judge settings
+# Judge must be a stronger model than the agent under test; never the same model.
+JUDGE_MODEL = "claude-sonnet-4-6"
+JUDGE_TEMPERATURE = 0.2          # low for stability, non-zero to allow re-runs
+JUDGE_SAMPLE_M = 3               # traces per question to judge (out of N=20)
+JUDGE_BUDGET_CALLS = 100         # hard cap on total judge API calls per run
+JUDGE_AGREEMENT_THRESHOLD = 0.7  # below this, flag dimension as "rubric needs work"
+
 
 def api_key() -> str:
     key = os.environ.get("ANTHROPIC_API_KEY")

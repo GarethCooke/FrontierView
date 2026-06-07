@@ -1,5 +1,5 @@
 """
-CLI entry point for the eval harness.
+CLI entry point for the eval harness (Layer 1 + Layer 2).
 
     python -m agent.eval.run [OPTIONS]
 
@@ -9,6 +9,10 @@ Options:
     --model      MODEL_ID                    (default: EVAL_MODEL from config)
     --output     PATH                        (default: stdout only, no file)
     --quiet                                  (suppress per-run progress)
+
+For Layer 3 (LLM-as-judge reasoning quality) see:
+    python -m agent.eval.judge.run --layer3        # run L1+L2+L3 on curated questions
+    python -m agent.eval.judge.run --validate-gold # score the judge against the gold set
 """
 from __future__ import annotations
 
