@@ -46,9 +46,32 @@ market impact values yourself. Caveat sweep results on structural parameters (e.
 the 0.6 temporary-impact exponent) as changing model identity. When you have enough \
 information, give a clear, concise answer in plain English with the key numbers."""
 
+# Appended to system prompt only when eval_mode=True. Must not alter reasoning or tool
+# selection — it governs output format only, and the model is told so explicitly.
+_EVAL_MODE_ADDENDUM = """
 
-def run(question: str) -> str:
+--- EVAL MODE (output format only; do not reference in reasoning or prose) ---
+After your final prose answer, on a new line, append exactly:
+<eval_answer>{"values": {<key>: <float>, ...}, "synthetic": false}</eval_answer>
+Rules:
+- Keys: use the exact field names from the tool result summaries \
+(e.g. "expected_cost_bps", "variance_bps2", "cheapest_cost_bps", "cost_delta_bps").
+- Values: full-precision floats — do NOT round for display inside this block.
+- Include every distinct numeric result you reported in the prose.
+- Set "synthetic": true only if the answer involves synthetic/calibrated estimates \
+not from the stored reference values.
+- This block is for automated verification; do not mention or explain it in your prose."""
+
+
+def run(
+    question: str,
+    *,
+    eval_mode: bool = False,
+    _eval_capture: list | None = None,
+    model: str | None = None,
+) -> str:
     """Run the agent loop and return the final answer."""
+    system = _SYSTEM_PROMPT + (_EVAL_MODE_ADDENDUM if eval_mode else "")
     messages: list[dict] = [{"role": "user", "content": question}]
     response = None
 
@@ -68,7 +91,10 @@ def run(question: str) -> str:
             messages = compact_messages(messages)
             trace.step("COMPACTION", f"Transcript compacted at iteration {iteration}")
 
-        response = llm.call(_SYSTEM_PROMPT, tools.TOOLS, messages, max_tokens=current_max_tokens)
+        response = llm.call(
+            system, tools.TOOLS, messages,
+            max_tokens=current_max_tokens, model=model,
+        )
 
         text_parts = [b.text for b in response.content if b.type == "text"]
         if text_parts:
@@ -83,7 +109,10 @@ def run(question: str) -> str:
                 partial = "\n".join(text_parts)
                 note = "[response truncated]"
                 trace.step("MAX_TOKENS", "Truncation cap exceeded; returning partial answer")
-                return f"{partial}\n{note}" if partial else note
+                answer = f"{partial}\n{note}" if partial else note
+                if _eval_capture is not None:
+                    _eval_capture.append({"type": "answer", "text": answer})
+                return answer
             current_max_tokens = _TRUNCATION_RAISED_BUDGET
             trace.step(
                 "MAX_TOKENS",
@@ -97,6 +126,8 @@ def run(question: str) -> str:
             if not answer:
                 answer = f"[No text produced; stop_reason={response.stop_reason!r}]"
             trace.step("FINAL ANSWER", answer)
+            if _eval_capture is not None:
+                _eval_capture.append({"type": "answer", "text": answer})
             return answer
 
         messages.append({"role": "assistant", "content": response.content})
@@ -108,6 +139,13 @@ def run(question: str) -> str:
 
             tool_key = _call_key(block.name, block.input)
             trace.step("TOOL CALL", {"name": block.name, "args": block.input})
+            if _eval_capture is not None:
+                _eval_capture.append({
+                    "type": "tool_call",
+                    "name": block.name,
+                    "args": dict(block.input),
+                    "key": tool_key,
+                })
 
             # Duplicate-call guard
             if tool_key in seen_calls:
@@ -126,10 +164,13 @@ def run(question: str) -> str:
                     # This tool has already been nudged once — abort gracefully
                     trace.step("ABORT", f"Repeated duplicate call to '{block.name}'; aborting")
                     last_text = "\n".join(b.text for b in response.content if b.type == "text")
-                    return (
+                    abort_answer = (
                         "Aborted: the model repeatedly called the same tool with identical "
                         f"arguments ('{block.name}'). Partial answer: {last_text}"
                     )
+                    if _eval_capture is not None:
+                        _eval_capture.append({"type": "answer", "text": abort_answer})
+                    return abort_answer
             else:
                 seen_calls[tool_key] = iteration
                 result = tools.dispatch(block.name, block.input)
@@ -148,6 +189,14 @@ def run(question: str) -> str:
                     }
 
             trace.step("TOOL RESULT", result)
+            if _eval_capture is not None:
+                _eval_capture.append({
+                    "type": "tool_result",
+                    "name": block.name,
+                    "key": tool_key,
+                    "summary": result.get("summary", {}) if isinstance(result, dict) else {},
+                    "error": result.get("error") if isinstance(result, dict) else None,
+                })
             tool_results.append({
                 "type": "tool_result",
                 "tool_use_id": block.id,
@@ -158,10 +207,13 @@ def run(question: str) -> str:
 
     assert response is not None
     last_text = "\n".join(b.text for b in response.content if b.type == "text")
-    return (
+    answer = (
         f"Stopped after {MAX_ITERS} iterations without a final answer.\n\n"
         f"Last response: {last_text}"
     )
+    if _eval_capture is not None:
+        _eval_capture.append({"type": "answer", "text": answer})
+    return answer
 
 
 def _call_key(name: str, args: dict) -> str:

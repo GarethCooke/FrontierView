@@ -4,7 +4,7 @@ import time
 
 import anthropic
 
-from agent.config import LLM_MAX_RETRIES, MAX_TOKENS, MODEL, api_key
+from agent.config import LLM_MAX_RETRIES, MAX_TOKENS, MODEL, TEMPERATURE, api_key
 
 _client: anthropic.Anthropic | None = None
 
@@ -25,6 +25,7 @@ def call(
     messages: list[dict],
     *,
     max_tokens: int | None = None,
+    model: str | None = None,
 ) -> anthropic.types.Message:
     """Call the model with exponential backoff retry on provider 429/5xx."""
     cached_tools = (
@@ -34,13 +35,15 @@ def call(
     )
     system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
     effective_max_tokens = MAX_TOKENS if max_tokens is None else max_tokens
+    effective_model = model if model is not None else MODEL
 
     last_exc: Exception | None = None
     for attempt in range(LLM_MAX_RETRIES):
         try:
             return _get_client().messages.create(
-                model=MODEL,
+                model=effective_model,
                 max_tokens=effective_max_tokens,
+                temperature=TEMPERATURE,
                 system=system,  # type: ignore[arg-type]
                 tools=cached_tools,  # type: ignore[arg-type]
                 messages=messages,  # type: ignore[arg-type]
