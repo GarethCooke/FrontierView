@@ -38,9 +38,9 @@ def call(
             return _get_client().messages.create(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
-                system=system,
-                tools=cached_tools,
-                messages=messages,
+                system=system,  # type: ignore[arg-type]
+                tools=cached_tools,  # type: ignore[arg-type]
+                messages=messages,  # type: ignore[arg-type]
             )
         except anthropic.RateLimitError as exc:
             last_exc = exc

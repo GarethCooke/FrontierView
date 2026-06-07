@@ -25,24 +25,26 @@ Single source of truth for the agent project. Update statuses as you go. Seed ea
 
 ## Phase plan
 
-### Phase 1 — Spine · status: BUILT, fixes applied — merge pending
+### Phase 1 — Spine · status: MERGED
 
 Loop + two tools (`cost_and_variance`, `optimal_schedule`) + CLI + tracer.
 
 - [x] Spine built by CC; DRY constraint held (no core refactor needed).
 - [x] Review fixes applied (Fix 1 schedule-format + Fix 2 truncation gate cleared). See `cc_brief_agent_phase1_review_fixes.md`.
-- [x] Merge `feature/agent-phase1` once FV suite passes on the branch.
+- [x] Merged to `master` (FV suite green on branch).
 
-### Phase 2 — Full scaffolding · status: BUILT — merge pending
+### Phase 2 — Full scaffolding · status: BUILT + reviewed — merge pending
 
 The real learning phase — "everything hard lives in the scaffolding."
 
-- [x] Full tool set: `compare_schedules`, `efficient_frontier`, `sweep`, `list_symbols`, `get_symbol_reference`, `describe_model`. DRY held; existing tools migrated to two-part result shape.
-- [x] Context/transcript management: thresholded compaction, stable prefix ordering.
-- [x] Harder error cases and recovery: full §4 recovery-policy table with tests per row.
-- [x] Schema validation: one Pydantic model per tool; schema advertised == schema validated (contract test). Semantic validation (weights sum to 1, λ>0, symbol in list, ADV sanity).
+- [x] Full tool set: `compare_schedules`, `efficient_frontier`, `sweep` (structural/calibrated/market classes), `list_symbols`, `get_symbol_reference`, `describe_model` — all read-only; two-part result shape (summary + out-of-band detail store).
+- [x] Context/transcript management: tool-result shaping + thresholded compaction (running-state preserves established facts) + stable prefix ordering.
+- [x] Harder error cases and recovery: two-surface model (tool-errors → model, loop-errors → harness); backoff, duplicate-call guard, retry budgets.
+- [x] Schema validation: one Pydantic model per tool, JSON schema generated from it, contract test (advertised == validated).
+- [x] Review passed — sweep caveat reaches `summary`, read-only holds on the structural param, default-path covered, market branch genuinely varies. Compaction integration test hardened to assert fact-survival. See `cc_brief_agent_phase2_scaffolding.md` + `cc_brief_agent_phase2_compaction_test_fix.md`.
+- [ ] Merge `feature/agent-phase2` once FV suite green on the branch (optional Opus diff pass first — undecided).
 
-### Phase 3 — Eval harness · status: TODO
+### Phase 3 — Eval harness · status: NEXT
 
 The differentiator; exploits the deterministic model for ground truth.
 
@@ -62,7 +64,7 @@ The differentiator; exploits the deterministic model for ground truth.
 ## Backlog (deferred, with target phase)
 
 - Trim/summarise `schedule_bins` in tool results to cut transcript tokens — P2/scale.
-- `calibrate(trades) → η, γ with standard errors` — **deferred out of P2.** FV uses fixed Almgren 2005 Table 3 values and has no fitting routine or trade dataset; adding it means new model logic + data ingestion, which breaks the wrap-existing-funcs / DRY principle. Revisit only if FV itself gains a calibration capability.
+- `calibrate` — **partially unblocked (reason corrected).** FV _does_ have a real WLS fitting routine (`fit_parameters`), so the old "no fitting routine" reason was wrong. But FV's calibration is **synthetic recovery** — it generates fills from the reference η/γ and recovers them — not a fit to supplied trades. A `calibrate(trades)` tool still needs real data ingestion FV lacks, so that version stays deferred. A _recovery-demo_ tool wrapping the existing synthetic routine in-process is feasible and read-only, but must be framed as synthetic recovery, not market calibration (mandatory caveat, like `sweep`'s structural caveat). Optional; lower priority than P3.
 - Prompt caching on the resent system+tools prefix (~90% off cached input) — P4/when cost matters.
 - Second provider via the `llm.py` isolation point — later, only if needed.
 - Split the agent onto a separate worker so a long request can't block the web service — later, only if traffic warrants.
@@ -78,4 +80,6 @@ The differentiator; exploits the deterministic model for ground truth.
 
 - `agent/docs/briefs/cc_brief_agent_phase1_spine.md` — Phase 1 build brief.
 - `agent/docs/briefs/cc_brief_agent_phase1_review_fixes.md` — review remediation brief.
+- `agent/docs/briefs/cc_brief_agent_phase2_scaffolding.md` — Phase 2 build brief.
+- `agent/docs/briefs/cc_brief_agent_phase2_compaction_test_fix.md` — compaction test hardening brief.
 - `agent/docs/frontierview_agent_cost_model.xlsx` — driveable per-query / monthly cost model across providers.

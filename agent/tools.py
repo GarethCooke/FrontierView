@@ -8,7 +8,7 @@ time, so the schema advertised to the model == the schema enforced at dispatch.
 from __future__ import annotations
 
 import math
-from typing import Any, Literal, TypedDict, Union
+from typing import Any, Literal, TypedDict, Union, cast
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -358,7 +358,7 @@ def dispatch(name: str, args: dict[str, Any]) -> ToolResult:
         # Pydantic ValidationError or any unexpected error during construction
         errors = getattr(exc, "errors", None)
         if callable(errors):
-            first = errors()[0]
+            first = cast(Any, errors)()[0]
             loc = first.get("loc", ())
             field = ".".join(str(x) for x in loc) if loc else "unknown"
             detail = first.get("msg", str(exc))

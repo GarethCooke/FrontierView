@@ -102,6 +102,7 @@ def test_compare_schedules_twap_cost_equals_core():
         },
     )
 
+    assert "summary" in direct
     assert "summary" in compared
     twap_row = next(
         r for r in compared["summary"]["schedules"] if r["schedule"] == "twap"
@@ -138,6 +139,7 @@ def test_efficient_frontier_endpoints_match_cost_and_variance():
             "n_bins": 13,
         },
     )
+    assert "summary" in direct
     assert low_end["expected_cost_bps"] == direct["summary"]["expected_cost_bps"]
 
 
@@ -172,6 +174,7 @@ def test_sweep_calibrated_eta_base_matches_cost_and_variance():
             "n_bins": 13,
         },
     )
+    assert "summary" in direct
     assert "summary" in swp
     # First point is at the base eta value
     assert swp["summary"]["cost_at_range_start_bps"] == direct["summary"]["expected_cost_bps"]
@@ -212,7 +215,7 @@ def test_unknown_tool_returns_structured_error():
     assert isinstance(result, dict)
     assert result.get("error") == "UnknownTool"
     assert "allowed" in result
-    assert "cost_and_variance" in result["allowed"]
+    assert "cost_and_variance" in (result.get("allowed") or [])
 
 
 def test_unknown_symbol_returns_structured_error():
@@ -243,6 +246,7 @@ def test_all_schedule_types_finite_and_distinct():
             },
         )
         assert "error" not in result, f"Unexpected error for {stype}: {result}"
+        assert "summary" in result
         s = result["summary"]
         cost = s["expected_cost_bps"]
         var = s["variance_bps2"]

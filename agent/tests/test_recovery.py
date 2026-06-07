@@ -35,7 +35,7 @@ def test_row1_invalid_arg_returns_structured_error_to_model():
         "cost_and_variance",
         {"symbol": "BOGUS", "order_size": 100_000, "horizon_hours": 2.0, "schedule_type": "twap"},
     )
-    assert result["error"] == "InvalidArgument"
+    assert result.get("error") == "InvalidArgument"
     assert "field" in result
     assert "detail" in result
     # got / allowed are optional but expected when field is known
@@ -47,7 +47,7 @@ def test_row1_negative_order_size_structured_error():
         "optimal_schedule",
         {"symbol": "AAPL", "order_size": -1, "horizon_hours": 2.0, "lambda_risk": 1e-6},
     )
-    assert result["error"] == "InvalidArgument"
+    assert result.get("error") == "InvalidArgument"
     assert "order_size" in result.get("field", "") or "order_size" in result.get("detail", "")
 
 
@@ -123,9 +123,9 @@ def test_row3_unknown_tool_fed_back_to_model():
 
 def test_row3_unknown_tool_error_contains_allowed_list():
     result = dispatch("no_such_tool", {"x": 1})
-    assert result["error"] == "UnknownTool"
+    assert result.get("error") == "UnknownTool"
     assert "allowed" in result
-    assert "cost_and_variance" in result["allowed"]
+    assert "cost_and_variance" in (result.get("allowed") or [])
 
 
 # ---------------------------------------------------------------------------

@@ -137,6 +137,7 @@ def run(question: str) -> str:
 
         messages.append({"role": "user", "content": tool_results})
 
+    assert response is not None
     last_text = "\n".join(b.text for b in response.content if b.type == "text")
     return (
         f"Stopped after {MAX_ITERS} iterations without a final answer.\n\n"
