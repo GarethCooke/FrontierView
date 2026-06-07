@@ -62,29 +62,6 @@ n_bins_st = st.integers(min_value=4, max_value=26)
 # ---------------------------------------------------------------------------
 
 
-# Retained for didactic comparison; do not use in tests.
-def _perm_cost_forward(
-    schedule: list[tuple[int, float]],
-    order_size: float,
-    params: SymbolParams,
-    horizon_hours: float,
-) -> float:
-    """Permanent cost using the forward accumulator — mirrors compute_cost_variance exactly.
-
-    Each bin pays the cumulative drift from *prior* bins only (S_{k-1}).
-    This convention is NOT schedule-invariant.
-    """
-    dt = horizon_hours / len(schedule)
-    v_hourly = params.adv / TRADING_HOURS_PER_DAY
-    perm = drift = 0.0
-    for _, participation in schedule:
-        v = participation * v_hourly
-        weight = v * dt / order_size
-        perm += drift * weight
-        drift += permanent_impact(v, v_hourly, params.sigma, params.gamma) * dt
-    return perm
-
-
 def _perm_cost_midpoint(
     schedule: list[tuple[int, float]],
     order_size: float,

@@ -5,14 +5,9 @@ from scipy import stats
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from api.market_impact import TRADING_HOURS_PER_DAY
 from api.parameters import ALMGREN_ETA, ALMGREN_GAMMA, SYMBOL_PARAMS
 from api.rate_limit import limiter
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Ground truth (Almgren 2005, Table 3) — imported from api.parameters
-# ─────────────────────────────────────────────────────────────────────────────
-ETA_TRUE   = ALMGREN_ETA    # 0.142
-GAMMA_TRUE = ALMGREN_GAMMA  # 0.314
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Symbol universe — imported from api.parameters (single source of truth)
@@ -43,10 +38,6 @@ SYMBOL_PROBS = np.full(len(SYMBOLS), 1.0 / len(SYMBOLS))
 K_DRIFT = 0.0884   # fraction of σ·√(T/6.5) applied to I_obs noise
 K_EXEC  = 0.0164   # fraction of σ·√(T/6.5) applied to execution noise
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Core functions — copied verbatim from verify_calibration.py
-# ─────────────────────────────────────────────────────────────────────────────
 
 def generate_fills(seed: int, n_orders: int) -> dict:
     """
@@ -84,12 +75,12 @@ def generate_fills(seed: int, n_orders: int) -> dict:
     v = X / horizon                   # execution rate, shares/hour
 
     # ── True impacts (fractional price units = cost to trader) ─────────────
-    I_true = GAMMA_TRUE * sigmas * (X / advs)               # permanent component
-    h_true = ETA_TRUE   * sigmas * (v / (6.5 * advs))**0.6 # temporary component
-    J_true = h_true + I_true / 2                             # total IS (Almgren convention)
+    I_true = ALMGREN_GAMMA * sigmas * (X / advs)                                    # permanent component
+    h_true = ALMGREN_ETA   * sigmas * (v / (TRADING_HOURS_PER_DAY * advs))**0.6    # temporary component
+    J_true = h_true + I_true / 2                                                     # total IS (Almgren convention)
 
     # ── Volatility-driven noise ────────────────────────────────────────────
-    sigma_path = sigmas * np.sqrt(horizon / 6.5)  # price-path diffusion std
+    sigma_path = sigmas * np.sqrt(horizon / TRADING_HOURS_PER_DAY)  # price-path diffusion std
     eps_drift  = rng.normal(0.0, K_DRIFT * sigma_path)
     eps_exec   = rng.normal(0.0, K_EXEC  * sigma_path)
 
@@ -129,7 +120,7 @@ def fit_parameters(fills: dict) -> dict:
     v  = fills["v"]
 
     # Common WLS weight (drives out heteroskedasticity from price-path noise)
-    w = 6.5 / (σ**2 * T)
+    w = TRADING_HOURS_PER_DAY / (σ**2 * T)
 
     # ── Permanent impact regression ────────────────────────────────────────
     # Model: I_obs = γ · (σ · X/V) + noise
@@ -152,7 +143,7 @@ def fit_parameters(fills: dict) -> dict:
 
     # ── Temporary impact regression ────────────────────────────────────────
     # Model: T_fit = η · σ·(v/(6.5V))^0.6 + noise
-    x_temp = σ * (v / (6.5 * V))**0.6
+    x_temp = σ * (v / (TRADING_HOURS_PER_DAY * V))**0.6
     y_temp = fills["T_fit"]
 
     eta_hat      = np.sum(w * x_temp * y_temp) / np.sum(w * x_temp**2)
@@ -226,14 +217,14 @@ def run_calibration(request: Request, payload: CalibrationRequest) -> dict:
     return {
         "seed": payload.seed,
         "n_orders": payload.n_orders,
-        "true_params": {"eta": ETA_TRUE, "gamma": GAMMA_TRUE},
+        "true_params": {"eta": ALMGREN_ETA, "gamma": ALMGREN_GAMMA},
         "fitted_params": {
             "eta_hat": eta_hat,
             "eta_se": eta_se,
-            "eta_rel_se_pct": eta_se / ETA_TRUE * 100.0,
+            "eta_rel_se_pct": eta_se / ALMGREN_ETA * 100.0,
             "gamma_hat": gamma_hat,
             "gamma_se": gamma_se,
-            "gamma_rel_se_pct": gamma_se / GAMMA_TRUE * 100.0,
+            "gamma_rel_se_pct": gamma_se / ALMGREN_GAMMA * 100.0,
         },
         "fit_stats": {
             "r2_temporary": float(fit["r2_temp"]),

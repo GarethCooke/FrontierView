@@ -11,10 +11,16 @@ Key conventions
 """
 
 import math
+from dataclasses import dataclass
 
-from api.parameters import SYMBOL_PARAMS as SYMBOL_PARAMS, SymbolParams as SymbolParams
+from api.parameters import SYMBOL_PARAMS as SYMBOL_PARAMS, SymbolParams as SymbolParams  # re-exported for downstream callers
 
 TRADING_HOURS_PER_DAY = 6.5
+
+
+def default_n_bins(horizon_hours: float) -> int:
+    """Canonical bin count for a horizon; shared by the API and the agent."""
+    return max(2, round(horizon_hours * 2))
 
 
 # ---------------------------------------------------------------------------
@@ -23,14 +29,15 @@ TRADING_HOURS_PER_DAY = 6.5
 
 
 def temporary_impact(
-    v: float, v_hourly: float, sigma_daily: float, eta: float
+    v: float, v_hourly: float, sigma_daily: float, eta: float,
+    temp_exponent: float = 0.6,
 ) -> float:
     """Power-law temporary market impact in bps, spread excluded.
 
-    power_law = η · σ_daily · (|v| / (6.5 · v_hourly))^0.6
+    power_law = η · σ_daily · (|v| / (6.5 · v_hourly))^temp_exponent
     """
     participation = abs(v) / v_hourly  # both shares/hour — correct
-    return eta * sigma_daily * (participation**0.6) * 1e4
+    return eta * sigma_daily * (participation**temp_exponent) * 1e4
 
 
 def permanent_impact(
@@ -152,40 +159,67 @@ def schedule_ac_linear(
 # ---------------------------------------------------------------------------
 
 
-def compute_cost_variance(
+@dataclass
+class CostBreakdown:
+    """Per-component execution cost breakdown plus shortfall variance."""
+    temporary_bps: float    # power-law temp impact, spread excluded
+    permanent_bps: float    # permanent (price-drift) impact
+    spread_bps: float       # half-spread cost
+    total_bps: float        # sum of the three above
+    variance_bps2: float    # execution shortfall variance (NOT P&L variance)
+
+
+def compute_cost_breakdown(
     schedule: list[tuple[int, float]],
     order_size: float,
     params: SymbolParams,
     horizon_hours: float,
-) -> tuple[float, float]:
-    """Return (expected_cost_bps, variance_bps2) for the given schedule.
+    temp_exponent: float = 0.6,
+) -> CostBreakdown:
+    """Return a full per-component cost breakdown for the given schedule.
 
-    expected_cost_bps — temporary + spread + permanent impact (AC shortfall).
-    variance_bps2     — variance of execution shortfall due to price diffusion
-                        while the order is worked (NOT P&L variance).
+    Uses the midpoint-rule permanent-cost accumulation, which is
+    schedule-invariant by construction (integrates to γσX/(2·V_hourly) in bps).
     """
     dt = horizon_hours / len(schedule)
     v_hourly = params.adv / TRADING_HOURS_PER_DAY
     sigma_bin = params.sigma * math.sqrt(dt / TRADING_HOURS_PER_DAY)
 
-    temp_cost = perm_cost = shortfall_variance = 0.0
+    temp_cost = perm_cost = spread_cost = shortfall_variance = 0.0
     remaining = order_size
     cumulative_drift_bps = 0.0
     for _, participation in schedule:
         v = participation * v_hourly
         weight = v * dt / order_size
-        temp_cost += (
-            temporary_impact(v, v_hourly, params.sigma, params.eta) + params.half_spread
-        ) * weight
-        # Standard Almgren-Chriss path integral discretised by midpoint rule.
-        # With linear g, this integrates to γσX²/(2·V_hourly), schedule-invariant by construction.
+        temp_cost += temporary_impact(v, v_hourly, params.sigma, params.eta, temp_exponent) * weight
+        spread_cost += params.half_spread * weight
+        # Midpoint rule: each bin pays cumulative drift from prior bins plus
+        # half its own, giving schedule-invariant permanent cost.
         own = permanent_impact(v, v_hourly, params.sigma, params.gamma) * dt
         perm_cost += (cumulative_drift_bps + own / 2) * weight
         cumulative_drift_bps += own
         shortfall_variance += (sigma_bin * 1e4) ** 2 * (remaining / order_size) ** 2
         remaining -= v * dt
 
-    return temp_cost + perm_cost, shortfall_variance
+    return CostBreakdown(
+        temporary_bps=temp_cost,
+        permanent_bps=perm_cost,
+        spread_bps=spread_cost,
+        total_bps=temp_cost + perm_cost + spread_cost,
+        variance_bps2=shortfall_variance,
+    )
+
+
+def compute_cost_variance(
+    schedule: list[tuple[int, float]],
+    order_size: float,
+    params: SymbolParams,
+    horizon_hours: float,
+    temp_exponent: float = 0.6,
+) -> tuple[float, float]:
+    """Return (expected_cost_bps, variance_bps2) for the given schedule."""
+    bd = compute_cost_breakdown(schedule, order_size, params, horizon_hours, temp_exponent)
+    return bd.total_bps, bd.variance_bps2
 
 
 def generate_frontier(

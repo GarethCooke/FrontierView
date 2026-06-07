@@ -25,19 +25,18 @@ from api.market_impact import (
     SYMBOL_PARAMS,
     TRADING_HOURS_PER_DAY,
     SymbolParams,
-    compute_cost_variance,
+    compute_cost_breakdown,
+    default_n_bins,
     generate_frontier,
-    permanent_impact,
     schedule_ac_linear,
     schedule_back_loaded,
     schedule_front_loaded,
     schedule_twap,
-    temporary_impact,
 )
 
 app = FastAPI(title="FrontierView", version="0.1.0")
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,29 +49,23 @@ app.mount("/docs", StaticFiles(directory="docs"), name="docs")
 app.include_router(calibration_router)
 
 
-@app.get("/iguana.svg")
-def iguana_svg():
-    return FileResponse("docs/iguana.svg", media_type="image/svg+xml")
+_STATIC_ASSETS: dict[str, tuple[str, str]] = {
+    "/iguana.svg":        ("docs/iguana.svg",        "image/svg+xml"),
+    "/nav.css":           ("docs/nav.css",            "text/css"),
+    "/design-tokens.css": ("docs/design-tokens.css",  "text/css"),
+    "/nav.js":            ("docs/nav.js",             "application/javascript"),
+    "/analytics.js":      ("docs/analytics.js",       "application/javascript"),
+}
 
 
-@app.get("/nav.css")
-def nav_css():
-    return FileResponse("docs/nav.css", media_type="text/css")
+def _make_static(file_path: str, media_type: str):
+    def endpoint():
+        return FileResponse(file_path, media_type=media_type)
+    return endpoint
 
 
-@app.get("/design-tokens.css")
-def design_tokens_css():
-    return FileResponse("docs/design-tokens.css", media_type="text/css")
-
-
-@app.get("/nav.js")
-def nav_js():
-    return FileResponse("docs/nav.js", media_type="application/javascript")
-
-
-@app.get("/analytics.js")
-def analytics_js():
-    return FileResponse("docs/analytics.js", media_type="application/javascript")
+for _route, (_file, _media) in _STATIC_ASSETS.items():
+    app.add_api_route(_route, _make_static(_file, _media), methods=["GET"])
 
 
 @app.get("/")
@@ -126,23 +119,13 @@ def _decompose_impact(
     params: SymbolParams,
     horizon_hours: float,
 ) -> ImpactDecomp:
-    """Compute cost components and shortfall variance for the schedule."""
-    temp_cost = spread_cost = perm_cost = 0.0
-    cumulative_drift_bps = 0.0
-    for _, p in raw:
-        v = p * ctx.v_hourly
-        weight = v * ctx.dt / ctx.order_size
-        temp_cost += temporary_impact(v, ctx.v_hourly, params.sigma, params.eta) * weight
-        spread_cost += params.half_spread * weight
-        own = permanent_impact(v, ctx.v_hourly, params.sigma, params.gamma) * ctx.dt
-        perm_cost += (cumulative_drift_bps + own / 2) * weight
-        cumulative_drift_bps += own
-    _, variance = compute_cost_variance(raw, ctx.order_size, params, horizon_hours)
+    """Map a compute_cost_breakdown result to the HTTP response model."""
+    bd = compute_cost_breakdown(raw, ctx.order_size, params, horizon_hours)
     return ImpactDecomp(
-        temporary_bps=round(temp_cost, 4),
-        permanent_bps=round(perm_cost, 4),
-        spread_bps=round(spread_cost, 4),
-        variance_bps2=round(variance, 4),
+        temporary_bps=round(bd.temporary_bps, 4),
+        permanent_bps=round(bd.permanent_bps, 4),
+        spread_bps=round(bd.spread_bps, 4),
+        variance_bps2=round(bd.variance_bps2, 4),
     )
 
 
@@ -171,7 +154,7 @@ def regime_frontier(request: Request, payload: AnalyseRequest) -> RegimeFrontier
         )
 
     base = SYMBOL_PARAMS[symbol]
-    n_bins = max(2, round(payload.horizon_hours * 2))
+    n_bins = default_n_bins(payload.horizon_hours)
 
     frontiers: dict[str, list[RegimeFrontierPoint]] = {}
     for regime, mults in _REGIMES.items():
@@ -203,7 +186,7 @@ def analyse(request: Request, payload: AnalyseRequest) -> AnalyseResponse:
         )
 
     params = SYMBOL_PARAMS[symbol]
-    n_bins = max(2, round(payload.horizon_hours * 2))
+    n_bins = default_n_bins(payload.horizon_hours)
     ctx = _BinCtx(
         v_hourly=params.adv / TRADING_HOURS_PER_DAY,
         dt=payload.horizon_hours / n_bins,

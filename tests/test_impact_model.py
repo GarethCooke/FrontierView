@@ -8,7 +8,6 @@ Tests cover four properties:
   4. Variance integral scales as T, not T²  (T/3 not T²/3)
 """
 
-import math
 import pytest
 
 from api.market_impact import (
