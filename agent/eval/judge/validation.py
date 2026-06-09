@@ -10,7 +10,7 @@ Measures:
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from agent.config import (
@@ -76,10 +76,31 @@ def _agreement_rate(judge_scores: list[str], human_scores: list[str]) -> float:
     return sum(j == h for j, h in zip(judge_scores, human_scores)) / len(judge_scores)
 
 
+def _cohens_kappa(judge_scores: list[str], human_scores: list[str]) -> float:
+    """Cohen's κ for a 3-class (pass/partial/fail) ordinal problem.
+
+    Implemented directly without external dependencies.
+    κ = (p_o − p_e) / (1 − p_e), where p_e is chance-agreement under marginal independence.
+    Returns 0.0 when there are no observations; 1.0 when p_e == 1 (degenerate case).
+    """
+    if not judge_scores:
+        return 0.0
+    n = len(judge_scores)
+    p_o = sum(j == h for j, h in zip(judge_scores, human_scores)) / n
+    categories = ("pass", "partial", "fail")
+    p_e = sum(
+        (judge_scores.count(k) / n) * (human_scores.count(k) / n)
+        for k in categories
+    )
+    if p_e >= 1.0:
+        return 1.0
+    return (p_o - p_e) / (1.0 - p_e)
+
+
 def _per_dimension_agreement(
     pairs: list[tuple[GoldItem, JudgeResult]],
-) -> dict[str, float]:
-    """Exact-match agreement rate per dimension, ignoring na-labelled items."""
+) -> dict[str, dict[str, float]]:
+    """Exact-match agreement rate and Cohen's κ per dimension, ignoring na-labelled items."""
     dim_j: dict[str, list[str]] = {d: [] for d in DIMENSIONS}
     dim_h: dict[str, list[str]] = {d: [] for d in DIMENSIONS}
 
@@ -96,7 +117,13 @@ def _per_dimension_agreement(
             dim_j[dim].append(j_score.score)
             dim_h[dim].append(h)
 
-    return {dim: _agreement_rate(dim_j[dim], dim_h[dim]) for dim in DIMENSIONS}
+    return {
+        dim: {
+            "exact_match": _agreement_rate(dim_j[dim], dim_h[dim]),
+            "kappa": _cohens_kappa(dim_j[dim], dim_h[dim]),
+        }
+        for dim in DIMENSIONS
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -181,10 +208,12 @@ def run_validation(
 
     if verbose:
         print(f"\nParse failures: {parse_failures}/{len(gold_items)}")
-        print("\nPer-dimension judge-human agreement:")
-        for dim, rate in agreement.items():
-            flag = "  ⚠  BELOW THRESHOLD — rubric needs work" if rate < threshold else ""
-            print(f"  {dim}: {rate:.1%}{flag}")
+        print("\nPer-dimension judge-human agreement (exact-match | Cohen's κ):")
+        for dim, metrics in agreement.items():
+            em = metrics["exact_match"]
+            kappa = metrics["kappa"]
+            flag = "  ⚠  BELOW THRESHOLD — rubric needs work" if em < threshold else ""
+            print(f"  {dim}: exact={em:.1%}  κ={kappa:.3f}{flag}")
 
     if verbose:
         print(f"\nRunning self-consistency ({n_consistency_runs} runs per item) ...")
@@ -201,7 +230,11 @@ def run_validation(
         for dim, rate in consistency.items():
             print(f"  {dim}: {rate:.1%}")
 
-    below_threshold = [dim for dim, rate in agreement.items() if rate < threshold]
+    # Threshold check is on exact-match rate
+    below_threshold = [
+        dim for dim, metrics in agreement.items()
+        if metrics["exact_match"] < threshold
+    ]
 
     # Per-item detail for the JSON output
     items_detail = []
@@ -232,7 +265,13 @@ def run_validation(
         "n_gold_items": len(gold_items),
         "parse_failures": parse_failures,
         "agreement_threshold": threshold,
-        "per_dimension_agreement": {k: round(v, 4) for k, v in agreement.items()},
+        "per_dimension_agreement": {
+            dim: {
+                "exact_match": round(metrics["exact_match"], 4),
+                "kappa": round(metrics["kappa"], 4),
+            }
+            for dim, metrics in agreement.items()
+        },
         "below_threshold_dimensions": below_threshold,
         "self_consistency": {k: round(v, 4) for k, v in consistency.items()},
         "items": items_detail,

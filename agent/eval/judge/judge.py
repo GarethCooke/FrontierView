@@ -24,7 +24,14 @@ from dataclasses import dataclass, field
 
 import anthropic
 
-from agent.config import JUDGE_MODEL, JUDGE_TEMPERATURE, LLM_MAX_RETRIES, api_key
+from agent.config import (
+    JUDGE_BUDGET_CALLS,
+    JUDGE_MODEL,
+    JUDGE_SAMPLE_M,
+    JUDGE_TEMPERATURE,
+    LLM_MAX_RETRIES,
+    api_key,
+)
 from agent.eval.judge.rubric import DIMENSIONS, RUBRIC
 from agent.eval.questions.types import Question
 
@@ -177,7 +184,9 @@ no explanation, no markdown fences. Use this exact schema:
 - For assumption_handling: if the question is fully specified, score "pass".
 - For out_of_tool_handling: if this is a normal in-tool question, score "pass".
 - For domain_correctness: score ONLY against the anchored exemplars in the rubric — \
-do not apply independent quant finance knowledge.
+do not apply independent quant finance knowledge. If the answer makes no claim touching \
+any of the four domain anchors (citation, permanent_linear, ac_optimality, \
+synthetic_recovery), score "pass" by default.
 
 ## Rubric
 
@@ -282,8 +291,8 @@ def run_layer3(
     question_results: list,      # list[harness.QuestionResult]
     judge_model: str = JUDGE_MODEL,
     temperature: float = JUDGE_TEMPERATURE,
-    sample_m: int = 3,
-    budget_calls: int = 100,
+    sample_m: int | None = None,    # None → JUDGE_SAMPLE_M from config
+    budget_calls: int | None = None,  # None → JUDGE_BUDGET_CALLS from config
     verbose: bool = False,
 ) -> dict:
     """Score a sample of traces from harness QuestionResult objects.
@@ -296,6 +305,11 @@ def run_layer3(
     on ~20 curated questions that is ~60 calls ≈ $0.18 per full Layer 3 run.
     The budget_calls cap prevents runaway cost.
     """
+    if sample_m is None:
+        sample_m = JUDGE_SAMPLE_M
+    if budget_calls is None:
+        budget_calls = JUDGE_BUDGET_CALLS
+
     calls_made = 0
     layer3: dict = {}
 

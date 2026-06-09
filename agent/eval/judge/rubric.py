@@ -297,6 +297,17 @@ RUBRIC: dict[str, dict] = {
             },
             {
                 "trace_span": (
+                    "Answer: 'The expected execution cost is 8.4 bps with a variance "
+                    "of 12.3 bps².'"
+                ),
+                "score": "pass",
+                "reason": (
+                    "Purely numeric answer — no citation, no mechanical claim, no recovery "
+                    "framing. None of the four domain anchors is touched → default pass."
+                ),
+            },
+            {
+                "trace_span": (
                     "Answer: 'The Almgren-Chriss (2001) optimal schedule minimises "
                     "the cost-variance trade-off.'"
                 ),

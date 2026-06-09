@@ -11,8 +11,8 @@ The harness never calls Layer 3 (LLM-as-judge) — that is a separate brief.
 """
 from __future__ import annotations
 
-import sys
 import time
+import traceback
 from dataclasses import dataclass, field
 
 from agent import loop
@@ -38,6 +38,7 @@ class RunResult:
     parse_failed: bool             # True if eval_answer block was absent/malformed
     capture: list[dict]            # raw capture events (tool_calls, tool_results, answer)
     elapsed_s: float
+    error: str | None = None       # set when loop.run raises an exception
 
 
 @dataclass
@@ -63,11 +64,15 @@ class QuestionResult:
         return sum(1 for r in self.runs if r.parse_failed) / self.n if self.n else 0.0
 
     @property
+    def error_rate(self) -> float:
+        return sum(1 for r in self.runs if r.error) / self.n if self.n else 0.0
+
+    @property
     def layer2_failure_counts(self) -> dict[str, int]:
         counts: dict[str, int] = {
             "tool_path": 0,
             "no_excess_duplicates": 0,
-            "synthetic_caveat": 0,
+            "caveat_presence": 0,
             "numeric_groundedness": 0,
         }
         for r in self.runs:
@@ -75,6 +80,15 @@ class QuestionResult:
                 if not r.layer2.get(k, {}).get("passed", True):
                     counts[k] += 1
         return counts
+
+    @property
+    def extra_call_count(self) -> int:
+        """Total extra tool calls across all runs (for efficiency reporting)."""
+        total = 0
+        for r in self.runs:
+            tp = r.layer2.get("tool_path", {})
+            total += tp.get("extra_count", 0)
+        return total
 
 
 # ---------------------------------------------------------------------------
@@ -85,13 +99,37 @@ class QuestionResult:
 def _run_once(question: Question, run_index: int, model: str) -> RunResult:
     capture: list[dict] = []
     t0 = time.monotonic()
-    answer = loop.run(
-        question.text,
-        eval_mode=True,
-        _eval_capture=capture,
-        model=model,
-    )
+
+    try:
+        answer = loop.run(
+            question.text,
+            eval_mode=True,
+            _eval_capture=capture,
+            model=model,
+        )
+        run_error: str | None = None
+    except Exception as exc:
+        # Isolate per-run failures: record error and continue rather than aborting the eval.
+        run_error = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
+        answer = ""
+
     elapsed = time.monotonic() - t0
+
+    if run_error:
+        empty_l2 = layer2.run_all(capture, question)
+        return RunResult(
+            run_index=run_index,
+            answer=answer,
+            parsed=None,
+            actual_values={},
+            value_scores={},
+            layer1_passed=False,
+            layer2=empty_l2,
+            parse_failed=False,
+            capture=capture,
+            elapsed_s=elapsed,
+            error=run_error,
+        )
 
     parsed = scorer.parse_eval_answer(answer)
     parse_failed = parsed is None and bool(question.gt_values)
@@ -146,8 +184,11 @@ def run_question(
         run = _run_once(question, i, model)
         result.runs.append(run)
         if verbose:
-            status = "pass" if run.layer1_passed else "FAIL"
-            print(f"{status} ({run.elapsed_s:.1f}s)")
+            if run.error:
+                print(f"ERROR ({run.elapsed_s:.1f}s)")
+            else:
+                status = "pass" if run.layer1_passed else "FAIL"
+                print(f"{status} ({run.elapsed_s:.1f}s)")
     return result
 
 
@@ -204,10 +245,14 @@ def run_eval(
 def _print_question_summary(qr: QuestionResult) -> None:
     l2_fails = qr.layer2_failure_counts
     l2_str = ", ".join(f"{k}:{v}" for k, v in l2_fails.items() if v > 0)
+    extra_str = f"  extra_calls:{qr.extra_call_count}" if qr.extra_call_count else ""
+    error_str = f"  errors:{sum(1 for r in qr.runs if r.error)}" if qr.error_rate > 0 else ""
     print(
         f"  Layer1: {qr.k_layer1}/{qr.n} "
         f"(success={qr.success_rate:.0%}, parse_fail={qr.parse_failure_rate:.0%})"
         + (f"  Layer2 fails: {l2_str}" if l2_str else "")
+        + extra_str
+        + error_str
     )
 
 
@@ -220,6 +265,8 @@ def _print_aggregate(results: dict) -> None:
     print(f"  Model:              {results['model']}")
     print(f"  Overall L1 success: {agg['overall_success_rate']:.1%}")
     print(f"  Parse failure rate: {agg['parse_failure_rate']:.1%}")
+    print(f"  Run error rate:     {agg['run_error_rate']:.1%}")
+    print(f"  Extra call rate:    {agg['extra_call_rate']:.1%}")
     print("  Layer 2 failure rates:")
     for k, v in agg["layer2_failure_rates"].items():
         print(f"    {k}: {v:.1%}")
@@ -235,7 +282,7 @@ def _build_results_dict(
     for qr in question_results:
         runs_data = []
         for r in qr.runs:
-            runs_data.append({
+            run_d: dict = {
                 "run_index": r.run_index,
                 "layer1_passed": r.layer1_passed,
                 "parse_failed": r.parse_failed,
@@ -246,7 +293,10 @@ def _build_results_dict(
                     k: v for k, v in r.layer2.items() if k != "passed"
                 },
                 "elapsed_s": round(r.elapsed_s, 2),
-            })
+            }
+            if r.error:
+                run_d["error"] = r.error
+            runs_data.append(run_d)
 
         l2_counts = qr.layer2_failure_counts
         questions_data.append({
@@ -260,6 +310,8 @@ def _build_results_dict(
             "k": qr.k_layer1,
             "n": qr.n,
             "parse_failure_rate": round(qr.parse_failure_rate, 4),
+            "error_rate": round(qr.error_rate, 4),
+            "extra_call_count": qr.extra_call_count,
             "layer2_failure_counts": l2_counts,
             "runs": runs_data,
         })
@@ -271,10 +323,16 @@ def _build_results_dict(
     overall_success = sum(all_rates) / len(all_rates)
     overall_parse_fail = sum(all_parse_rates) / len(all_parse_rates)
 
-    l2_keys = ["tool_path", "no_excess_duplicates", "synthetic_caveat", "numeric_groundedness"]
+    total_runs = sum(qr.n for qr in question_results)
+    total_errors = sum(1 for qr in question_results for r in qr.runs if r.error)
+    run_error_rate = total_errors / total_runs if total_runs else 0.0
+
+    total_extra_calls = sum(qr.extra_call_count for qr in question_results)
+    extra_call_rate = total_extra_calls / total_runs if total_runs else 0.0
+
+    l2_keys = ["tool_path", "no_excess_duplicates", "caveat_presence", "numeric_groundedness"]
     l2_fail_rates: dict[str, float] = {}
     for k in l2_keys:
-        total_runs = sum(qr.n for qr in question_results)
         total_fails = sum(qr.layer2_failure_counts.get(k, 0) for qr in question_results)
         l2_fail_rates[k] = total_fails / total_runs if total_runs else 0.0
 
@@ -286,6 +344,8 @@ def _build_results_dict(
         "aggregate": {
             "overall_success_rate": round(overall_success, 4),
             "parse_failure_rate": round(overall_parse_fail, 4),
+            "run_error_rate": round(run_error_rate, 4),
+            "extra_call_rate": round(extra_call_rate, 4),
             "layer2_failure_rates": {k: round(v, 4) for k, v in l2_fail_rates.items()},
         },
     }
