@@ -45,12 +45,12 @@ The real learning phase — "everything hard lives in the scaffolding."
 - [x] Opus adversarial diff pass + remediation: F1 (max_tokens budget-raise recovery), F2 (custom-weight bin width), M1–M3, then `_n_bins_for` single-sourced to `api.market_impact.default_n_bins`. See `cc_brief_agent_phase2_review_fixes.md` + `cc_brief_agent_phase2_premerge_cleanup.md`.
 - [x] Merged to `master` (agent suite + FV suite green on the branch).
 
-### Phase 3 — Eval harness · status: NEXT
+### Phase 3 — Eval harness · status: MERGED
 
 The differentiator; exploits the deterministic model for ground truth.
 
-- [ ] Question set with model-computed ground-truth answers; auto-score answer correctness.
-- [ ] Reasoning-quality eval (the harder, non-deterministic part).
+- [x] Question set with model-computed ground-truth answers; auto-score answer correctness.
+- [x] Reasoning-quality eval (the harder, non-deterministic part).
 
 ### Phase 4 — Surface + writeup · status: TODO
 

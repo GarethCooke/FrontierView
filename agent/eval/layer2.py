@@ -11,6 +11,7 @@ Capture event shapes (from loop.py):
                           "summary": dict, "error": str | None}
   {"type": "answer",      "text": str}
 """
+
 from __future__ import annotations
 
 import re
@@ -53,9 +54,7 @@ def _extract_numbers(text: str) -> list[float]:
     falling back to plain numeric literals.
     """
     # Strip thousands separators from grouped numbers first
-    cleaned = _COMMA_NUMBER_RE.sub(
-        lambda m: m.group().replace(",", ""), text
-    )
+    cleaned = _COMMA_NUMBER_RE.sub(lambda m: m.group().replace(",", ""), text)
     results = []
     for m in _NUMBER_RE.finditer(cleaned):
         try:
@@ -89,12 +88,18 @@ def _answer_without_eval_block(text: str) -> str:
     return re.sub(r"<eval_answer>.*?</eval_answer>", "", text, flags=re.DOTALL)
 
 
-def _within_tol(n: float, pool: list[float], rtol: float = 0.02, atol: float = 0.01) -> bool:
+def _within_tol(
+    n: float, pool: list[float], rtol: float = 0.02, atol: float = 0.01
+) -> bool:
     """True if n is within tolerance of any number in the pool, or within tolerance
-    of a pairwise combination (difference, sum, ratio, or percentage) of pool numbers.
+    of a pairwise sum or difference of pool numbers.
 
-    Pairwise arithmetic covers legitimate derived figures — deltas, totals, ratios —
-    without opening the check to arbitrary n-ary expressions (which would be vacuous).
+    Only direct match and pairwise ± are covered. Ratio and percentage candidates
+    (a/b, b/a, 100·a/b, 100·b/a) are intentionally excluded: over a mixed-magnitude
+    pool they scatter ~150 candidates across the number line, each with a 2% band,
+    making it easy for a hallucinated mid-range value to match by coincidence.
+    If a specific question's correct answer includes a ratio, include the derived
+    value in that tool's summary instead of re-loosening this check globally.
     """
     # Direct match
     for p in pool:
@@ -105,17 +110,10 @@ def _within_tol(n: float, pool: list[float], rtol: float = 0.02, atol: float = 0
             if abs(n - p) / abs(p) <= rtol or abs(n - p) <= atol:
                 return True
 
-    # Pairwise derived: difference, sum, ratio, and percentage-of (100*a/b)
+    # Pairwise derived: difference and sum only
     for i, a in enumerate(pool):
-        for b in pool[i + 1:]:
-            candidates: list[float] = [a - b, b - a, a + b]
-            if b != 0.0:
-                candidates.append(a / b)
-                candidates.append(100.0 * a / b)
-            if a != 0.0:
-                candidates.append(b / a)
-                candidates.append(100.0 * b / a)
-            for c in candidates:
+        for b in pool[i + 1 :]:
+            for c in (a - b, b - a, a + b):
                 if c == 0.0:
                     if abs(n) <= atol:
                         return True
@@ -148,8 +146,7 @@ def check_tool_path(
 
     primary_ok = expected_set.issubset(actual_set)
     alt_ok = any(
-        set(alt).issubset(actual_set)
-        for alt in (question.acceptable_tool_paths or [])
+        set(alt).issubset(actual_set) for alt in (question.acceptable_tool_paths or [])
     )
     passed = primary_ok or alt_ok
 
@@ -231,7 +228,7 @@ def check_numeric_groundedness(capture: list[dict], question: Question) -> dict:
 
     A number is grounded if it is within tolerance of:
       - Any number in the tool-result pool (direct match), OR
-      - A pairwise arithmetic combination of pool numbers (delta, sum, ratio, percentage).
+      - A pairwise sum or difference of pool numbers.
 
     The pool is pre-seeded with the question's own numeric literals (order size, horizon,
     λ, sweep-range endpoints) so those constants are never flagged as ungrounded.
@@ -244,7 +241,8 @@ def check_numeric_groundedness(capture: list[dict], question: Question) -> dict:
 
     # Collect model-visible numbers (summaries of successful tool results only)
     summaries = [
-        e["summary"] for e in capture
+        e["summary"]
+        for e in capture
         if e["type"] == "tool_result" and not e.get("error") and e.get("summary")
     ]
     visible_numbers = _flatten_summary_numbers(summaries)
