@@ -70,7 +70,7 @@ class FinalAnswer(_Base):
 
 class RunFinished(_Base):
     type: Literal["run_finished"] = "run_finished"
-    turns: int
+    turns: int | None = None
     usage: dict[str, Any] | None = None
 
 

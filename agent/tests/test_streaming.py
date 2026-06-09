@@ -152,9 +152,8 @@ def test_sse_disabled_returns_404():
 def test_byte_identical_result_and_faithful_events():
     """
     The loop with event_sink=None and with a RecordingSink must return the
-    same answer and the same tool-call sequence.  The recorded events must be
-    a faithful projection of the run (tool_result summaries match; tool_call
-    inputs match).
+    same answer.  The recorded events must faithfully project the sink run
+    (tool_result summaries match; tool_call inputs match).
     """
     responses_none = _two_shot()
     responses_sink = _two_shot()
@@ -198,11 +197,36 @@ def test_byte_identical_result_and_faithful_events():
 
 def test_byte_identical_no_sink_constructs_nothing():
     """With event_sink=None the loop must not construct or emit any events."""
-    # Wrap RecordingSink constructor to detect instantiation
-    with patch("agent.loop.llm.call", side_effect=_two_shot()):
-        # Simply running with no sink must succeed and return a string
-        result = run("test", event_sink=None)
-    assert isinstance(result, str)
+    import agent.events as ev
+    from contextlib import ExitStack
+
+    names = ["RunStarted", "AssistantText", "ToolCall", "ToolResultEvent",
+             "CompactionEvent", "ErrorEvent", "FinalAnswer", "RunFinished"]
+    built: list[str] = []
+
+    def _spy(name):
+        orig = getattr(ev, name)
+        def _wrap(*a, **k):
+            built.append(name)
+            return orig(*a, **k)
+        return _wrap
+
+    # None path: assert nothing is constructed
+    with ExitStack() as stack:
+        for n in names:
+            stack.enter_context(patch.object(ev, n, side_effect=_spy(n)))
+        with patch("agent.loop.llm.call", side_effect=_two_shot()):
+            run("test", event_sink=None)
+    assert built == [], f"None path constructed events: {built}"
+
+    # Positive control: with a sink, the SAME spy must fire (proves the tripwire works)
+    built.clear()
+    with ExitStack() as stack:
+        for n in names:
+            stack.enter_context(patch.object(ev, n, side_effect=_spy(n)))
+        with patch("agent.loop.llm.call", side_effect=_two_shot()):
+            run("test", event_sink=RecordingSink())
+    assert built, "Spy never fired even with a sink — the test cannot detect construction"
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +251,7 @@ def test_schema_round_trip():
         FinalAnswer(seq=7, t=8.0, answer="The cost is 8.5 bps."),
         RunFinished(seq=8, t=9.0, turns=2),
         RunFinished(seq=9, t=10.0, turns=3, usage={"input": 100, "output": 50}),
+        RunFinished(seq=10, t=11.0, turns=None),
     ]
 
     for original in samples:
@@ -330,7 +355,7 @@ def test_loop_run_default_sink_is_none():
 # ---------------------------------------------------------------------------
 
 def test_error_path_terminal_event_and_closed_stream(monkeypatch):
-    """A forced exception in the worker emits a terminal error event and closes cleanly."""
+    """A forced exception in the worker emits error(loop) → run_finished and closes cleanly."""
     monkeypatch.setenv("AGENT_PUBLIC_ENABLED", "1")
 
     from api.main import app
@@ -345,7 +370,7 @@ def test_error_path_terminal_event_and_closed_stream(monkeypatch):
     # Stream must have responded (not hung / crashed the server)
     assert resp.status_code == 200
     frames = _parse_sse(resp.text)
-    assert len(frames) >= 1, "Expected at least one SSE frame on error path"
+    assert len(frames) >= 2, "Expected at least 2 SSE frames on error path"
 
     types = [f["type"] for f in frames]
     # Must contain an error event
@@ -356,6 +381,14 @@ def test_error_path_terminal_event_and_closed_stream(monkeypatch):
         f"Expected kind='loop' on worker exception; got {error_events[0]['kind']}"
     )
     assert "forced test error" in error_events[0]["message"]
+
+    # Stream must always terminate with run_finished
+    assert types[-1] == "run_finished", (
+        f"Last event must be run_finished on error path; got {types[-1]}"
+    )
+    assert frames[-1]["turns"] is None, (
+        f"run_finished.turns must be None on aborted run; got {frames[-1]['turns']}"
+    )
 
 
 def test_error_path_recording_sink():

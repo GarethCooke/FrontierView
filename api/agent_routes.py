@@ -9,6 +9,9 @@ Transport contract:
   - `type` is also inside `data` so fetch-stream clients can dispatch without
     relying on the `event:` field (native EventSource is GET-only; 4c uses fetch).
   - Keepalive:  `: keepalive\n\n`  on 15-second queue drain timeout.
+  - The stream always terminates with `run_finished`:
+      normal path:  ... → `final_answer` → `run_finished` (turns=N)
+      error path:   ... → `error(kind="loop")` → `run_finished` (turns=None)
   - The stream always closes cleanly — the worker guarantees a sentinel in finally.
 """
 from __future__ import annotations
@@ -23,7 +26,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from agent.events import ErrorEvent, EventSink, _Base
+from agent.events import ErrorEvent, EventSink, RunFinished, _Base
 from agent.loop import run as _agent_run
 
 router = APIRouter()
@@ -72,13 +75,9 @@ async def _sse_stream(question: str) -> AsyncGenerator[str, None]:
         try:
             await asyncio.to_thread(_agent_run, question, event_sink=sink)
         except Exception as exc:
-            err = ErrorEvent(
-                seq=sink.last_seq + 1,
-                t=time.time(),
-                kind="loop",
-                message=str(exc),
-            )
-            queue.put_nowait(err)
+            base = sink.last_seq
+            queue.put_nowait(ErrorEvent(seq=base + 1, t=time.time(), kind="loop", message=str(exc)))
+            queue.put_nowait(RunFinished(seq=base + 2, t=time.time(), turns=None))
         finally:
             queue.put_nowait(_SENTINEL)
 
