@@ -45,12 +45,12 @@ The real learning phase — "everything hard lives in the scaffolding."
 - [x] Opus adversarial diff pass + remediation: F1 (max_tokens budget-raise recovery), F2 (custom-weight bin width), M1–M3, then `_n_bins_for` single-sourced to `api.market_impact.default_n_bins`. See `cc_brief_agent_phase2_review_fixes.md` + `cc_brief_agent_phase2_premerge_cleanup.md`.
 - [x] Merged to `master` (agent suite + FV suite green on the branch).
 
-### Phase 3 — Eval harness · status: NEXT
+### Phase 3 — Eval harness · status: MERGED
 
 The differentiator; exploits the deterministic model for ground truth.
 
-- [ ] Question set with model-computed ground-truth answers; auto-score answer correctness.
-- [ ] Reasoning-quality eval (the harder, non-deterministic part).
+- [x] Question set with model-computed ground-truth answers; auto-score answer correctness.
+- [x] Reasoning-quality eval (the harder, non-deterministic part).
 
 ### Phase 4 — Surface + writeup · status: TODO
 
@@ -58,7 +58,12 @@ The differentiator; exploits the deterministic model for ground truth.
 - [ ] "Ask the model" tab on FV showing the live tool-call trace + charts responding.
 - [ ] Rate limiting + hard spend cap + demo-mode (bounded example questions).
 - [ ] Make clear in the UI that symbol params are stored reference values, not a live feed.
-- [ ] Writeup / portfolio billing.
+- [ ] **Technical write-up** (`agent/docs/agent_writeup.md`) — the detailed "what / how / why":
+  - *What*: purpose + capabilities — natural-language Q&A over the FV market-impact model via native tool use, plus the guarded public demo surface.
+  - *How*: hand-rolled loop; hosted brain (Haiku 4.5) isolated in `llm.py`; in-process tools wrapping FV functions (no copied logic); two-part result shape (summary + out-of-band detail store); thresholded compaction with running-state; two-surface error recovery; Pydantic single-source schemas; prompt caching; the three-layer eval harness.
+  - *Why*: the locked-decision rationale — DRY as a hard constraint; no framework ("everything hard lives in the scaffolding"); in-process over copied model logic; deterministic model as eval ground truth; synthetic recovery as estimator behaviour, not market calibration; AC schedules sub-optimal under the 0.6 power-law (feature, not bug); Almgren et al. (2005) correctness points.
+  - Assembled from the locked decisions in this roadmap + the CC briefs — consolidation, not reconstruction.
+- [ ] **Portfolio billing / framing** — where the write-up surfaces (prominent FV-project-page section / dedicated post / short standalone). Shares source material with `frontierview_interview_prep.md`.
 
 ---
 
@@ -70,6 +75,7 @@ The differentiator; exploits the deterministic model for ground truth.
 - Second provider via the `llm.py` isolation point — later, only if needed.
 - Split the agent onto a separate worker so a long request can't block the web service — later, only if traffic warrants.
 - Keep the cost model's rates current as providers change pricing — ongoing.
+- Rationale capture is ongoing — locked decisions + briefs are the raw material for the Phase 4 technical write-up; keep them current so the write-up stays assembly, not archaeology.
 
 ## Open questions (unresolved)
 

@@ -1,0 +1,910 @@
+[
+  {
+    "id": "gold_001",
+    "question_id": "gold_q_001",
+    "question_text": "What is the TWAP execution cost for buying 100,000 shares of AAPL over 2 hours?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Fully specified question.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 2.0, "schedule_type": "twap"},
+        "key": "cv_aapl_twap"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_twap",
+        "summary": {
+          "expected_cost_bps": 7.84,
+          "variance_bps2": 12.31,
+          "temporary_bps": 5.62,
+          "permanent_bps": 1.42,
+          "spread_bps": 0.80
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "For a TWAP purchase of 100,000 AAPL shares over 2 hours, the expected execution cost is approximately 7.84 bps. This breaks down as 5.62 bps temporary impact, 1.42 bps permanent impact, and 0.80 bps spread cost. The expected shortfall variance is 12.31 bps². These estimates use AAPL’s stored reference parameters from the Almgren et al. (2005) model."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Fully specified question, correct answer, all components labelled correctly, correct citation."
+  },
+  {
+    "id": "gold_002",
+    "question_id": "gold_q_002",
+    "question_text": "What is the TWAP execution cost for buying 100,000 shares of AAPL over 2 hours?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Fully specified question.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 2.0, "schedule_type": "twap"},
+        "key": "cv_aapl_twap"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_twap",
+        "summary": {
+          "expected_cost_bps": 7.84,
+          "variance_bps2": 12.31,
+          "temporary_bps": 5.62,
+          "permanent_bps": 1.42,
+          "spread_bps": 0.80
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Based on the Almgren-Chriss (2001) model, the TWAP cost for 100,000 AAPL shares over 2 hours is 7.84 bps, with 5.62 bps temporary impact, 1.42 bps permanent impact, and 0.80 bps spread."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "fail"
+    },
+    "human_notes": "Correct numbers and labels, but cites 'Almgren-Chriss (2001)' instead of 'Almgren et al. (2005)'. Domain correctness fails on the citation anchor."
+  },
+  {
+    "id": "gold_003",
+    "question_id": "gold_q_003",
+    "question_text": "Break down the TWAP cost for 100,000 AAPL shares over 2 hours into temporary, permanent, and spread components.",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Decomposition question; all three components must be labelled correctly.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 2.0, "schedule_type": "twap"},
+        "key": "cv_aapl_decomp"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_decomp",
+        "summary": {
+          "expected_cost_bps": 7.84,
+          "variance_bps2": 12.31,
+          "temporary_bps": 5.62,
+          "permanent_bps": 1.42,
+          "spread_bps": 0.80
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The cost breaks down as follows: 5.62 bps of permanent impact, 1.42 bps of temporary impact, and 0.80 bps spread cost, totalling 7.84 bps."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "fail",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Swapped temporary and permanent labels: tool shows temporary_bps=5.62 and permanent_bps=1.42, but answer calls 5.62 'permanent' and 1.42 'temporary'."
+  },
+  {
+    "id": "gold_004",
+    "question_id": "gold_q_004",
+    "question_text": "Break down the TWAP cost for 100,000 AAPL shares over 2 hours into temporary, permanent, and spread components.",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Decomposition question.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 2.0, "schedule_type": "twap"},
+        "key": "cv_aapl_decomp2"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_decomp2",
+        "summary": {
+          "expected_cost_bps": 7.84,
+          "variance_bps2": 12.31,
+          "temporary_bps": 5.62,
+          "permanent_bps": 1.42,
+          "spread_bps": 0.80
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The total TWAP cost is 7.84 bps, broken down as: 5.62 bps temporary impact, 1.42 bps permanent impact, and 0.80 bps half-spread cost."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Correct decomposition with correctly labelled components."
+  },
+  {
+    "id": "gold_005",
+    "question_id": "gold_q_005",
+    "question_text": "Break down the TWAP cost for 100,000 AAPL shares over 2 hours into temporary, permanent, and spread components.",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Decomposition question.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 2.0, "schedule_type": "twap"},
+        "key": "cv_aapl_decomp3"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_decomp3",
+        "summary": {
+          "expected_cost_bps": 7.84,
+          "variance_bps2": 12.31,
+          "temporary_bps": 5.62,
+          "permanent_bps": 1.42,
+          "spread_bps": 0.80
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The temporary and permanent impact components total approximately 7.04 bps, with an additional 0.80 bps spread. Total execution cost is 7.84 bps."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "partial",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Omits the individual temporary and permanent figures, only reporting their sum. The total and spread are correct. Minor omission — partial fidelity."
+  },
+  {
+    "id": "gold_006",
+    "question_id": "gold_q_006",
+    "question_text": "What is the optimal execution schedule for 100,000 MSFT shares over 1 hour at lambda=1e-5?",
+    "expected_tool_path": ["optimal_schedule"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "AC optimal schedule; should not claim optimality under power-law.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "optimal_schedule",
+        "args": {"symbol": "MSFT", "order_size": 100000, "horizon_hours": 1.0, "lambda_risk": 1e-5},
+        "key": "opt_msft"
+      },
+      {
+        "type": "tool_result",
+        "name": "optimal_schedule",
+        "key": "opt_msft",
+        "summary": {
+          "expected_cost_bps": 9.21,
+          "variance_bps2": 8.74,
+          "schedule_type": "ac_linear"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The Almgren-Chriss optimal schedule for 100,000 MSFT shares over 1 hour at λ=1e-5 achieves an expected cost of 9.21 bps with a variance of 8.74 bps². This schedule is globally optimal under the 0.6 power-law temporary-impact model used by FrontierView."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "fail"
+    },
+    "human_notes": "Claims AC schedule is globally optimal under the 0.6 power-law. This violates the ac_optimality domain anchor: the AC closed-form is derived under linear temporary impact and sits above the true efficient frontier under the power-law."
+  },
+  {
+    "id": "gold_007",
+    "question_id": "gold_q_007",
+    "question_text": "What is the optimal execution schedule for 100,000 MSFT shares over 1 hour at lambda=1e-5?",
+    "expected_tool_path": ["optimal_schedule"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "AC optimal schedule.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "optimal_schedule",
+        "args": {"symbol": "MSFT", "order_size": 100000, "horizon_hours": 1.0, "lambda_risk": 1e-5},
+        "key": "opt_msft2"
+      },
+      {
+        "type": "tool_result",
+        "name": "optimal_schedule",
+        "key": "opt_msft2",
+        "summary": {
+          "expected_cost_bps": 9.21,
+          "variance_bps2": 8.74,
+          "schedule_type": "ac_linear"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The Almgren et al. (2005) optimal schedule for 100,000 MSFT shares over 1 hour at λ=1e-5 gives an expected cost of 9.21 bps (variance 8.74 bps²). Note: this schedule minimises the cost-variance trade-off under linear temporary impact; under the 0.6 power-law exponent used here it is an approximation to the true efficient frontier, not a global optimum."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Correct citation, correct caveat on AC optimality under power-law."
+  },
+  {
+    "id": "gold_008",
+    "question_id": "gold_q_008",
+    "question_text": "What's the market impact of buying 200,000 shares of SPY?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Underspecified: no schedule, no horizon.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "SPY", "order_size": 200000, "horizon_hours": 4.0, "schedule_type": "twap"},
+        "key": "cv_spy_ambig1"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_spy_ambig1",
+        "summary": {"expected_cost_bps": 9.42, "variance_bps2": 22.1},
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Since neither a schedule type nor execution horizon was specified, I’ll assume TWAP over 4 hours as a reasonable institutional default. The expected cost for 200,000 SPY shares under these assumptions is 9.42 bps (variance 22.1 bps²). If you have a specific schedule or horizon in mind, I can rerun with those parameters."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Agent names both missing parameters (schedule and horizon) and explicitly labels them as assumptions. Offers to re-run."
+  },
+  {
+    "id": "gold_009",
+    "question_id": "gold_q_009",
+    "question_text": "What's the market impact of buying 200,000 shares of SPY?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Underspecified: no schedule, no horizon.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "SPY", "order_size": 200000, "horizon_hours": 4.0, "schedule_type": "twap"},
+        "key": "cv_spy_ambig2"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_spy_ambig2",
+        "summary": {"expected_cost_bps": 9.42, "variance_bps2": 22.1},
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The expected execution cost for 200,000 SPY shares is 9.42 bps with a variance of 22.1 bps²."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "fail",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Agent called cost_and_variance with TWAP/4h but never acknowledged that schedule or horizon were unspecified."
+  },
+  {
+    "id": "gold_010",
+    "question_id": "gold_q_010",
+    "question_text": "What's the market impact of buying 200,000 shares of SPY?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Underspecified: no schedule, no horizon.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "SPY", "order_size": 200000, "horizon_hours": 4.0, "schedule_type": "twap"},
+        "key": "cv_spy_ambig3"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_spy_ambig3",
+        "summary": {"expected_cost_bps": 9.42, "variance_bps2": 22.1},
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Using TWAP, the expected execution cost for 200,000 SPY shares is 9.42 bps."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "partial",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Mentions TWAP in the answer but not that it was an assumption, and never acknowledges that the horizon (4h) was also unspecified. Partial: one assumption surfaced, one silent."
+  },
+  {
+    "id": "gold_011",
+    "question_id": "gold_q_011",
+    "question_text": "I need to trade AAPL quickly. What’s the market impact?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Underspecified and ambiguous horizon ('quickly'). Choosing 6.5h would be wrong.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 6.5, "schedule_type": "twap"},
+        "key": "cv_aapl_quick"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_quick",
+        "summary": {"expected_cost_bps": 4.21, "variance_bps2": 18.4},
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Over a full trading day, the expected cost for 100,000 AAPL shares is 4.21 bps."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "fail",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Agent chose a 6.5h full-day horizon for a question that explicitly said 'quickly'. Wrong default, not flagged as an assumption."
+  },
+  {
+    "id": "gold_012",
+    "question_id": "gold_q_012",
+    "question_text": "Can you calibrate the model to my recent fills?",
+    "expected_tool_path": [],
+    "out_of_tool": true,
+    "synthetic": false,
+    "notes": "No calibration tool exposed. Correct: substantive decline.",
+    "trace": [
+      {
+        "type": "answer",
+        "text": "FrontierView does not expose a calibration tool — the η and γ parameters are stored reference values, not derived from live fills. To incorporate your trade data you would need to run the parameter recovery routine separately and supply the recovered values as overrides. I can show you the current stored parameters for any symbol if that would help."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Substantive decline: names the limitation, explains why, and offers an alternative path."
+  },
+  {
+    "id": "gold_013",
+    "question_id": "gold_q_013",
+    "question_text": "What will AAPL’s stock price be next week?",
+    "expected_tool_path": [],
+    "out_of_tool": true,
+    "synthetic": false,
+    "notes": "Price prediction is out of scope.",
+    "trace": [
+      {
+        "type": "answer",
+        "text": "I’m sorry, I can’t help with that request."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "partial",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Declines but gives no explanation of why FrontierView cannot predict prices or what it can do instead."
+  },
+  {
+    "id": "gold_014",
+    "question_id": "gold_q_014",
+    "question_text": "Can you calibrate the model to my recent fills?",
+    "expected_tool_path": [],
+    "out_of_tool": true,
+    "synthetic": false,
+    "notes": "No calibration tool exposed.",
+    "trace": [
+      {
+        "type": "answer",
+        "text": "Based on your fills, I estimate η = 0.12 and γ = 0.03. These parameters suggest moderate temporary impact and low permanent impact for your trading style."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "fail",
+      "confidence_calibration": "fail",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Fabricates calibrated parameters without any tool call. Also overconfident: presents invented numbers as estimates."
+  },
+  {
+    "id": "gold_015",
+    "question_id": "gold_q_015",
+    "question_text": "Write me an autonomous trading algorithm that minimises my market impact.",
+    "expected_tool_path": [],
+    "out_of_tool": true,
+    "synthetic": false,
+    "notes": "Autonomous algo is out of scope.",
+    "trace": [
+      {
+        "type": "answer",
+        "text": "FrontierView computes execution costs and optimal schedules, but it does not generate executable trading algorithms. To operationalise an optimal schedule you would need a separate execution management system (EMS). I can provide the Almgren et al. (2005) optimal schedule for your order parameters, which an EMS could then implement — would that be useful?"
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Declines substantively, names the scope boundary, correct citation, redirects to in-scope functionality."
+  },
+  {
+    "id": "gold_016",
+    "question_id": "gold_q_016",
+    "question_text": "I need to buy 15,000,000 shares of JPM over 6.5 hours. What is the estimated cost?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "~1x JPM ADV. Tool returns an unreliability warning; agent must propagate it.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "JPM", "order_size": 15000000, "horizon_hours": 6.5, "schedule_type": "twap"},
+        "key": "cv_jpm_large"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_jpm_large",
+        "summary": {
+          "expected_cost_bps": 41.3,
+          "variance_bps2": 312.0,
+          "warning": "order_size exceeds ADV; impact estimates unreliable at this scale"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Important caveat: this order is approximately 1× JPM’s average daily volume, which puts the model well outside its calibrated range — treat these figures as highly indicative only. With that caveat, the model returns an expected cost of 41.3 bps (variance 312 bps²) for a TWAP over 6.5 hours."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Correctly propagates the ADV warning before reporting numbers."
+  },
+  {
+    "id": "gold_017",
+    "question_id": "gold_q_017",
+    "question_text": "I need to buy 15,000,000 shares of JPM over 6.5 hours. What is the estimated cost?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "~1x JPM ADV. Tool returns unreliability warning.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "JPM", "order_size": 15000000, "horizon_hours": 6.5, "schedule_type": "twap"},
+        "key": "cv_jpm_large2"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_jpm_large2",
+        "summary": {
+          "expected_cost_bps": 41.3,
+          "variance_bps2": 312.0,
+          "warning": "order_size exceeds ADV; impact estimates unreliable at this scale"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The expected execution cost for 15,000,000 JPM shares over 6.5 hours is 41.3 bps with a variance of 312 bps²."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "fail",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Reports numbers with no caveat despite tool returning an explicit ADV-exceedance warning. Overconfident."
+  },
+  {
+    "id": "gold_018",
+    "question_id": "gold_q_018",
+    "question_text": "How does the SPY TWAP cost for 200,000 shares over 2 hours change as eta varies from 0.1 to 0.2?",
+    "expected_tool_path": ["sweep"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Structural-parameter sweep; agent should caveat that varying eta changes model identity.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "sweep",
+        "args": {"symbol": "SPY", "order_size": 200000, "horizon_hours": 2.0, "param": "eta", "range_start": 0.1, "range_end": 0.2},
+        "key": "sweep_spy_eta"
+      },
+      {
+        "type": "tool_result",
+        "name": "sweep",
+        "key": "sweep_spy_eta",
+        "summary": {
+          "cost_at_range_start_bps": 6.84,
+          "cost_at_range_end_bps": 13.21,
+          "cost_delta_bps": 6.37
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Note: varying η changes the model’s structural assumption about temporary impact, so these results describe model sensitivity rather than a direct market scenario. Across the range η=0.1 to η=0.2, the expected TWAP cost increases from 6.84 bps to 13.21 bps, a delta of 6.37 bps."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Correctly caveats that sweeping a structural parameter changes model identity, then faithfully reports the sweep results."
+  },
+  {
+    "id": "gold_019",
+    "question_id": "gold_q_019",
+    "question_text": "How does the SPY TWAP cost for 200,000 shares over 2 hours change as eta varies from 0.1 to 0.2?",
+    "expected_tool_path": ["sweep"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Structural-parameter sweep.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "sweep",
+        "args": {"symbol": "SPY", "order_size": 200000, "horizon_hours": 2.0, "param": "eta", "range_start": 0.1, "range_end": 0.2},
+        "key": "sweep_spy_eta2"
+      },
+      {
+        "type": "tool_result",
+        "name": "sweep",
+        "key": "sweep_spy_eta2",
+        "summary": {
+          "cost_at_range_start_bps": 6.84,
+          "cost_at_range_end_bps": 13.21,
+          "cost_delta_bps": 6.37
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "As η increases from 0.1 to 0.2, the expected cost approximately doubles from around 6-7 bps to roughly 13 bps. This tells you how sensitive your costs are to changes in market conditions."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "partial",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "partial",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Two issues: (1) approximate values ('around 6-7 bps') when exact values are available from the tool — partial fidelity; (2) no caveat that sweeping eta changes model structure, and misleadingly frames it as 'changes in market conditions' — partial calibration."
+  },
+  {
+    "id": "gold_020",
+    "question_id": "gold_q_020",
+    "question_text": "Can you explain how permanent impact works in the FrontierView model?",
+    "expected_tool_path": ["describe_model"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Qualitative model description; permanent impact must be described as linear (beta=1).",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "describe_model",
+        "args": {},
+        "key": "desc_model"
+      },
+      {
+        "type": "tool_result",
+        "name": "describe_model",
+        "key": "desc_model",
+        "summary": {
+          "model": "Almgren-Chriss 2005",
+          "permanent_impact": "linear in trade rate; beta=1 per no-arbitrage constraint",
+          "temporary_impact": "power-law with exponent 0.6"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "In the Almgren et al. (2005) model, permanent impact is linear in trade size (beta=1). This linearity is required by the no-arbitrage constraint: a nonlinear permanent impact would create price manipulation opportunities. Temporary impact uses a power-law with exponent 0.6, which captures the concavity of market depth."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Correct citation, correctly explains permanent impact linearity and its no-arbitrage motivation, correctly distinguishes permanent from temporary impact."
+  },
+  {
+    "id": "gold_021",
+    "question_id": "gold_q_021",
+    "question_text": "Can you explain how permanent impact works in the FrontierView model?",
+    "expected_tool_path": ["describe_model"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Permanent impact must be linear, not power-law.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "describe_model",
+        "args": {},
+        "key": "desc_model2"
+      },
+      {
+        "type": "tool_result",
+        "name": "describe_model",
+        "key": "desc_model2",
+        "summary": {
+          "model": "Almgren-Chriss 2005",
+          "permanent_impact": "linear in trade rate; beta=1 per no-arbitrage constraint"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "In FrontierView, permanent impact follows a power-law relationship with trade size, similar to the temporary impact term, allowing the model to capture realistic concavity in market depth at large order sizes."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "fail",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "fail"
+    },
+    "human_notes": "Contradicts the tool result (which says 'linear, beta=1') and violates the permanent_linear domain anchor by claiming permanent impact is power-law."
+  },
+  {
+    "id": "gold_022",
+    "question_id": "gold_q_022",
+    "question_text": "What is the TWAP execution cost for buying 100,000 shares of AAPL over 2 hours?",
+    "expected_tool_path": ["cost_and_variance"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Fully specified question. Over-hedging test.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "cost_and_variance",
+        "args": {"symbol": "AAPL", "order_size": 100000, "horizon_hours": 2.0, "schedule_type": "twap"},
+        "key": "cv_aapl_hedge"
+      },
+      {
+        "type": "tool_result",
+        "name": "cost_and_variance",
+        "key": "cv_aapl_hedge",
+        "summary": {"expected_cost_bps": 7.84, "variance_bps2": 12.31},
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "The model suggests the cost might be somewhere in the range of 5 to 15 bps depending on market conditions, liquidity, and other factors that could significantly alter the outcome. Results will vary and should not be relied upon for trading decisions without further analysis."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "fail",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "fail",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Two problems: (1) reports a wide range (5-15 bps) instead of the model's exact output of 7.84 bps — fidelity failure; (2) over-hedges a precise model output to the point of obscuring the answer — calibration failure."
+  },
+  {
+    "id": "gold_023",
+    "question_id": "gold_q_023",
+    "question_text": "Compare TWAP and front-loaded schedules for selling 500,000 SPY shares over 4 hours.",
+    "expected_tool_path": ["compare_schedules"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Schedule comparison; front-loaded is cheaper in this scenario.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "compare_schedules",
+        "args": {"symbol": "SPY", "order_size": 500000, "horizon_hours": 4.0},
+        "key": "cmp_spy_sell"
+      },
+      {
+        "type": "tool_result",
+        "name": "compare_schedules",
+        "key": "cmp_spy_sell",
+        "summary": {
+          "schedules": {
+            "twap": {"expected_cost_bps": 18.42, "variance_bps2": 45.1},
+            "front_loaded": {"expected_cost_bps": 16.83, "variance_bps2": 61.2}
+          },
+          "cheapest": "front_loaded"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "For selling 500,000 SPY shares over 4 hours, TWAP costs 18.42 bps (variance 45.1 bps²) and front-loaded costs 16.83 bps (variance 61.2 bps²). TWAP is the cheaper schedule."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "fail",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Numbers are correct but the conclusion is wrong: agent says 'TWAP is cheaper' when the tool clearly shows front_loaded (16.83) < TWAP (18.42). Narrative contradicts the tool result."
+  },
+  {
+    "id": "gold_024",
+    "question_id": "gold_q_024",
+    "question_text": "Compare TWAP and front-loaded schedules for selling 500,000 SPY shares over 4 hours.",
+    "expected_tool_path": ["compare_schedules"],
+    "out_of_tool": false,
+    "synthetic": false,
+    "notes": "Schedule comparison.",
+    "trace": [
+      {
+        "type": "tool_call",
+        "name": "compare_schedules",
+        "args": {"symbol": "SPY", "order_size": 500000, "horizon_hours": 4.0},
+        "key": "cmp_spy_sell2"
+      },
+      {
+        "type": "tool_result",
+        "name": "compare_schedules",
+        "key": "cmp_spy_sell2",
+        "summary": {
+          "schedules": {
+            "twap": {"expected_cost_bps": 18.42, "variance_bps2": 45.1},
+            "front_loaded": {"expected_cost_bps": 16.83, "variance_bps2": 61.2}
+          },
+          "cheapest": "front_loaded"
+        },
+        "error": null
+      },
+      {
+        "type": "answer",
+        "text": "Front-loaded is cheaper at 16.83 bps vs TWAP at 18.42 bps — a saving of 1.59 bps. However, front-loaded carries higher variance (61.2 bps² vs 45.1 bps²), so if you are risk-sensitive a TWAP may be preferable despite the higher average cost."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "pass",
+      "out_of_tool_handling": "pass",
+      "confidence_calibration": "pass",
+      "domain_correctness": "pass"
+    },
+    "human_notes": "Correct cheapest-schedule identification, correct variance trade-off commentary."
+  },
+  {
+    "id": "gold_025",
+    "question_id": "gold_q_025",
+    "question_text": "What are the recovered model parameters from a synthetic calibration run?",
+    "expected_tool_path": [],
+    "out_of_tool": true,
+    "synthetic": true,
+    "notes": "Synthetic recovery result; must be framed as from planted parameters, not market data.",
+    "trace": [
+      {
+        "type": "answer",
+        "text": "Based on market calibration to recent trade data, the model estimates η = 0.14 and γ = 0.03. These market-derived parameters reflect current liquidity conditions."
+      }
+    ],
+    "human_labels": {
+      "assumption_handling": "pass",
+      "explanation_fidelity": "fail",
+      "out_of_tool_handling": "fail",
+      "confidence_calibration": "fail",
+      "domain_correctness": "fail"
+    },
+    "human_notes": "Triple failure: (1) no recovery tool exists so any answer is fabricated — out_of_tool fail; (2) frames synthetic recovery as 'market calibration' — domain_correctness fails on synthetic_recovery anchor; (3) fidelity fails as there is no tool result to ground these numbers; (4) overconfident — presents invented parameters as definitive."
+  }
+]
