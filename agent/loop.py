@@ -17,9 +17,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 
+from agent import events as _events
 from agent import llm, tools, trace
-from agent.compaction import compact_messages, should_compact
+from agent.compaction import compact_messages, estimate_tokens, should_compact
 from agent.config import MAX_ITERS, MAX_TOKENS, TOOL_RETRY_BUDGET
 
 _MAX_TRUNCATION_RETRIES = 2
@@ -69,8 +71,10 @@ def run(
     eval_mode: bool = False,
     _eval_capture: list | None = None,
     model: str | None = None,
+    event_sink: _events.EventSink | None = None,
 ) -> str:
     """Run the agent loop and return the final answer."""
+    from agent.config import MODEL
     system = _SYSTEM_PROMPT + (_EVAL_MODE_ADDENDUM if eval_mode else "")
     messages: list[dict] = [{"role": "user", "content": question}]
     response = None
@@ -84,21 +88,53 @@ def run(
     truncation_retries = 0
     current_max_tokens: int | None = None  # None = use default MAX_TOKENS
 
+    # Monotonic sequence counter for stream events (only incremented when sink is active).
+    _seq: list[int] = [0]
+
+    def _mk(cls, **kwargs) -> _events._Base:
+        n = _seq[0]
+        _seq[0] += 1
+        return cls(seq=n, t=time.time(), **kwargs)
+
+    if event_sink is not None:
+        event_sink.emit(_mk(
+            _events.RunStarted,
+            question=question,
+            config_summary={
+                "model": model or MODEL,
+                "max_iters": MAX_ITERS,
+                "eval_mode": eval_mode,
+            },
+        ))
+
+    turns = 0
+
     for iteration in range(MAX_ITERS):
 
         # Compact if the transcript has grown too large (before sending to model)
         if should_compact(messages):
+            before_tok = estimate_tokens(messages) if event_sink is not None else 0
             messages = compact_messages(messages)
             trace.step("COMPACTION", f"Transcript compacted at iteration {iteration}")
+            if event_sink is not None:
+                after_tok = estimate_tokens(messages)
+                event_sink.emit(_mk(
+                    _events.CompactionEvent,
+                    before_tokens=before_tok,
+                    after_tokens=after_tok,
+                ))
 
         response = llm.call(
             system, tools.TOOLS, messages,
             max_tokens=current_max_tokens, model=model,
         )
+        turns += 1
 
         text_parts = [b.text for b in response.content if b.type == "text"]
         if text_parts:
             trace.step("REASONING", "\n".join(text_parts))
+            if event_sink is not None:
+                event_sink.emit(_mk(_events.AssistantText, text="\n".join(text_parts)))
 
         # Over-length output: raise budget and retry; return truncated after cap
         if response.stop_reason == "max_tokens":
@@ -110,6 +146,9 @@ def run(
                 note = "[response truncated]"
                 trace.step("MAX_TOKENS", "Truncation cap exceeded; returning partial answer")
                 answer = f"{partial}\n{note}" if partial else note
+                if event_sink is not None:
+                    event_sink.emit(_mk(_events.FinalAnswer, answer=answer))
+                    event_sink.emit(_mk(_events.RunFinished, turns=turns))
                 if _eval_capture is not None:
                     _eval_capture.append({"type": "answer", "text": answer})
                 return answer
@@ -126,6 +165,9 @@ def run(
             if not answer:
                 answer = f"[No text produced; stop_reason={response.stop_reason!r}]"
             trace.step("FINAL ANSWER", answer)
+            if event_sink is not None:
+                event_sink.emit(_mk(_events.FinalAnswer, answer=answer))
+                event_sink.emit(_mk(_events.RunFinished, turns=turns))
             if _eval_capture is not None:
                 _eval_capture.append({"type": "answer", "text": answer})
             return answer
@@ -139,6 +181,12 @@ def run(
 
             tool_key = _call_key(block.name, block.input)
             trace.step("TOOL CALL", {"name": block.name, "args": block.input})
+            if event_sink is not None:
+                event_sink.emit(_mk(
+                    _events.ToolCall,
+                    name=block.name,
+                    input=dict(block.input),
+                ))
             if _eval_capture is not None:
                 _eval_capture.append({
                     "type": "tool_call",
@@ -168,6 +216,13 @@ def run(
                         "Aborted: the model repeatedly called the same tool with identical "
                         f"arguments ('{block.name}'). Partial answer: {last_text}"
                     )
+                    if event_sink is not None:
+                        event_sink.emit(_mk(
+                            _events.ErrorEvent,
+                            kind="loop",
+                            message=abort_answer,
+                        ))
+                        event_sink.emit(_mk(_events.RunFinished, turns=turns))
                     if _eval_capture is not None:
                         _eval_capture.append({"type": "answer", "text": abort_answer})
                     return abort_answer
@@ -189,6 +244,19 @@ def run(
                     }
 
             trace.step("TOOL RESULT", result)
+            if event_sink is not None:
+                if "error" in result:
+                    event_sink.emit(_mk(
+                        _events.ErrorEvent,
+                        kind="tool",
+                        message=result.get("detail", result.get("error", "tool error")),
+                    ))
+                else:
+                    event_sink.emit(_mk(
+                        _events.ToolResultEvent,
+                        name=block.name,
+                        summary=result.get("summary", {}),
+                    ))
             if _eval_capture is not None:
                 _eval_capture.append({
                     "type": "tool_result",
@@ -211,6 +279,9 @@ def run(
         f"Stopped after {MAX_ITERS} iterations without a final answer.\n\n"
         f"Last response: {last_text}"
     )
+    if event_sink is not None:
+        event_sink.emit(_mk(_events.FinalAnswer, answer=answer))
+        event_sink.emit(_mk(_events.RunFinished, turns=turns))
     if _eval_capture is not None:
         _eval_capture.append({"type": "answer", "text": answer})
     return answer

@@ -10,6 +10,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from api.rate_limit import limiter
 
+from api.agent_routes import router as agent_router
 from api.calibration import router as calibration_router
 from api.models import (
     AnalyseRequest,
@@ -47,6 +48,7 @@ app.add_middleware(
 
 app.mount("/docs", StaticFiles(directory="docs"), name="docs")
 app.include_router(calibration_router)
+app.include_router(agent_router)
 
 
 _STATIC_ASSETS: dict[str, tuple[str, str]] = {
