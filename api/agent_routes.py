@@ -15,9 +15,10 @@ Demo-mode guardrails (Phase 4b):
   - Per-IP rate limiting: 5 req/min and 50 req/day on POST /agent only.
     GET /agent/questions is exempt (static, no LLM cost).
     Rejection is 429 + Retry-After as plain JSON before the stream opens.
-  - Demo turn/size limits are the existing loop bounds (MAX_ITERS=8,
-    MAX_TOKENS=4096) — unchanged.  A tighter public-only cap would risk
-    truncating a curated question that legitimately needs those turns.
+  - Demo turn/size limits are the existing loop bounds (`MAX_ITERS` /
+    `MAX_TOKENS` — defined in agent/config.py, applied in agent/loop.py) and
+    are unchanged here.  A tighter public-only cap would risk truncating a
+    curated question that legitimately needs those turns.
 
 Transport contract (unchanged from 4a):
   - Each SSE frame:  event: <type>\\ndata: <json>\\n\\n
@@ -39,13 +40,13 @@ import os
 import time
 from collections.abc import AsyncGenerator
 
-import anthropic as _anthropic
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
 from agent.eval.questions.curated import CURATED_QUESTIONS
 from agent.events import ErrorEvent, RunFinished, _Base
+from agent.llm import ProviderBudgetError
 from agent.loop import run as _agent_run
 from api.rate_limiter import RateLimiter
 
@@ -106,10 +107,23 @@ class _QueueSink:
 # ---------------------------------------------------------------------------
 
 def _is_budget_exhausted(exc: BaseException) -> bool:
-    """True when retry-exhausted 429s signal spend-cap or provider throttling."""
-    return isinstance(exc, _anthropic.RateLimitError) or isinstance(
-        getattr(exc, "__cause__", None), _anthropic.RateLimitError
-    )
+    """True when a ProviderBudgetError appears anywhere in the cause chain.
+
+    The provider-specific 429 classification lives in agent/llm.py; here we
+    only walk __cause__ for the provider-agnostic signal, so a re-wrap of the
+    chain can't silently degrade the budget terminal back to kind="loop".
+
+    The ``seen`` guard is cheap cycle insurance: cause chains shouldn't cycle,
+    but a future refactor shouldn't be able to hang the worker on this walk.
+    """
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        if isinstance(cur, ProviderBudgetError):
+            return True
+        seen.add(id(cur))
+        cur = cur.__cause__
+    return False
 
 
 # ---------------------------------------------------------------------------
