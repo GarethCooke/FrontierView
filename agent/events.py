@@ -59,7 +59,7 @@ class CompactionEvent(_Base):
 
 class ErrorEvent(_Base):
     type: Literal["error"] = "error"
-    kind: Literal["tool", "loop"]
+    kind: Literal["tool", "loop", "budget"]
     message: str
 
 

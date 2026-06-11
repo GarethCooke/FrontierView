@@ -88,10 +88,13 @@ def test_sse_event_ordering_and_types(monkeypatch):
     monkeypatch.setenv("AGENT_PUBLIC_ENABLED", "1")
 
     from api.main import app
+    from api.agent_routes import ALLOWED
+
+    _QUESTION_ID = "cur_cost_aapl_natural"
 
     with patch("agent.loop.llm.call", side_effect=_two_shot()):
         with TestClient(app) as client:
-            resp = client.post("/agent", json={"question": "What is the optimal schedule?"})
+            resp = client.post("/agent", json={"question_id": _QUESTION_ID})
 
     assert resp.status_code == 200
     assert "text/event-stream" in resp.headers["content-type"]
@@ -124,8 +127,8 @@ def test_sse_event_ordering_and_types(monkeypatch):
     seqs = [f["seq"] for f in frames]
     assert seqs == list(range(len(seqs))), f"seq must be 0,1,2,… got {seqs}"
 
-    # run_started carries the question
-    assert frames[0]["question"] == "What is the optimal schedule?"
+    # run_started carries the resolved canonical question text
+    assert frames[0]["question"] == ALLOWED[_QUESTION_ID]
 
     # final_answer carries the answer text
     fa = next(f for f in frames if f["type"] == "final_answer")
@@ -140,7 +143,7 @@ def test_sse_disabled_returns_404():
     from api.main import app
 
     with TestClient(app) as client:
-        resp = client.post("/agent", json={"question": "test"})
+        resp = client.post("/agent", json={"question_id": "cur_cost_aapl_natural"})
 
     assert resp.status_code == 404
 
@@ -248,10 +251,11 @@ def test_schema_round_trip():
         CompactionEvent(seq=4, t=5.0, before_tokens=1000, after_tokens=400),
         ErrorEvent(seq=5, t=6.0, kind="tool", message="bad arg"),
         ErrorEvent(seq=6, t=7.0, kind="loop", message="abort"),
-        FinalAnswer(seq=7, t=8.0, answer="The cost is 8.5 bps."),
-        RunFinished(seq=8, t=9.0, turns=2),
-        RunFinished(seq=9, t=10.0, turns=3, usage={"input": 100, "output": 50}),
-        RunFinished(seq=10, t=11.0, turns=None),
+        ErrorEvent(seq=7, t=7.5, kind="budget", message="spend cap reached"),
+        FinalAnswer(seq=8, t=8.0, answer="The cost is 8.5 bps."),
+        RunFinished(seq=9, t=9.0, turns=2),
+        RunFinished(seq=10, t=10.0, turns=3, usage={"input": 100, "output": 50}),
+        RunFinished(seq=11, t=11.0, turns=None),
     ]
 
     for original in samples:
@@ -365,7 +369,7 @@ def test_error_path_terminal_event_and_closed_stream(monkeypatch):
 
     with patch("agent.loop.llm.call", side_effect=_boom):
         with TestClient(app) as client:
-            resp = client.post("/agent", json={"question": "explode please"})
+            resp = client.post("/agent", json={"question_id": "cur_cost_aapl_natural"})
 
     # Stream must have responded (not hung / crashed the server)
     assert resp.status_code == 200

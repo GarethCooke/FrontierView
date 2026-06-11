@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, call, patch
 import anthropic
 import pytest
 
+from agent import llm
 from agent.config import MAX_ITERS, TOOL_RETRY_BUDGET
 from agent.loop import _MAX_TRUNCATION_RETRIES, _TRUNCATION_RAISED_BUDGET, run
 from agent.tests.helpers import _max_tokens_response, _text_response, _tool_response
@@ -160,8 +161,11 @@ def test_row4_rate_limit_triggers_retry():
     assert "answer" in answer.lower() or isinstance(answer, str)
 
 
-def test_row4_all_retries_exhausted_raises():
-    """If all retries fail, the loop surfaces a RuntimeError (not a silent failure)."""
+def test_row4_rate_limit_exhaustion_raises_provider_budget_error():
+    """At the provider seam, persistent 429 retry-exhaustion raises the
+    provider-agnostic ProviderBudgetError with the original RateLimitError
+    chained as __cause__ — so callers classify the budget terminal without
+    importing anthropic, and a future re-wrap can't degrade it to kind="loop"."""
     rate_limit_exc = anthropic.RateLimitError(
         message="rate limited", response=MagicMock(status_code=429), body={}
     )
@@ -172,8 +176,37 @@ def test_row4_all_retries_exhausted_raises():
         mock_client.messages.create.side_effect = [rate_limit_exc] * 10
         mock_client_fn.return_value = mock_client
 
-        with pytest.raises((RuntimeError, anthropic.RateLimitError)):
-            run("What is the schedule?")
+        with pytest.raises(llm.ProviderBudgetError) as exc_info:
+            llm.call("system", [], [{"role": "user", "content": "hi"}])
+
+    assert exc_info.value.__cause__ is rate_limit_exc, (
+        "Original RateLimitError must be chained as __cause__ on ProviderBudgetError"
+    )
+
+
+def test_row4_non_rate_limit_exhaustion_raises_generic():
+    """Positive control: a persistent non-429 provider error (5xx) exhausts
+    retries into the *generic* RuntimeError, not ProviderBudgetError — the
+    budget signal is reserved for 429-class throttling/spend-cap only."""
+    server_exc = anthropic.InternalServerError(
+        message="upstream boom", response=MagicMock(status_code=503), body={}
+    )
+
+    with patch("agent.llm._get_client") as mock_client_fn, \
+         patch("agent.llm.time.sleep"):
+        mock_client = MagicMock()
+        mock_client.messages.create.side_effect = [server_exc] * 10
+        mock_client_fn.return_value = mock_client
+
+        with pytest.raises(RuntimeError) as exc_info:
+            llm.call("system", [], [{"role": "user", "content": "hi"}])
+
+    assert not isinstance(exc_info.value, llm.ProviderBudgetError), (
+        "Non-429 exhaustion must not be classified as a budget error"
+    )
+    assert exc_info.value.__cause__ is server_exc, (
+        "Original server error must be chained as __cause__ on the generic RuntimeError"
+    )
 
 
 # ---------------------------------------------------------------------------
