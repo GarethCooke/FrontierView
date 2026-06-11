@@ -6,6 +6,10 @@ This is by design — Render's ephemeral filesystem makes cross-process state
 unreliable, and the key-level monthly spend cap is the financial backstop.
 Not a security control: X-Forwarded-For is client-spoofable; IP isolation is
 UX throttling only.
+
+Both windows are anchored at the IP's first counted request (and re-anchor at
+the first request after a window lapses), not aligned to the UTC calendar: the
+day window is a rolling 24h from that anchor — it will not reset at midnight.
 """
 from __future__ import annotations
 
@@ -35,6 +39,9 @@ class _IPState:
 class RateLimiter:
     """
     Fixed-window per-IP limiter: 5 req/min and 50 req/day on POST /agent.
+    Each window is anchored at the IP's first counted request and re-anchors at
+    the first request after it lapses — the day window is a rolling 24h from
+    that anchor, not aligned to the UTC calendar (it will not reset at midnight).
 
     Pass a ``clock`` callable (returning epoch seconds) for deterministic
     testing — no sleeps required.  Guards with a threading.Lock because

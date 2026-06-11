@@ -17,11 +17,12 @@ from __future__ import annotations
 import json
 import os
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
+from agent.llm import ProviderBudgetError
 from agent.tests.helpers import _text_response, _tool_response
 
 
@@ -258,27 +259,6 @@ def test_questions_endpoint_exempt_from_rate_limit(monkeypatch):
 # T8 — Budget terminal
 # ---------------------------------------------------------------------------
 
-def _make_rate_limit_cause() -> Exception:
-    """Build a RuntimeError wrapping anthropic.RateLimitError, matching llm.py output."""
-    import anthropic
-    import httpx
-    from unittest.mock import MagicMock
-
-    fake_response = MagicMock(spec=httpx.Response)
-    fake_response.status_code = 429
-    fake_response.headers = httpx.Headers({})
-    fake_response.request = MagicMock(spec=httpx.Request)
-
-    cause = anthropic.RateLimitError(
-        message="Monthly spend limit reached",
-        response=fake_response,
-        body={},
-    )
-    wrapper = RuntimeError(f"LLM call failed after 3 retries. Last error: {cause}")
-    wrapper.__cause__ = cause
-    return wrapper
-
-
 _LOCKED_BUDGET_MESSAGE = (
     "The demo's usage budget has been reached for now — likely the monthly cap. "
     "It resets at the start of next month; the rest of FrontierView works as "
@@ -287,11 +267,18 @@ _LOCKED_BUDGET_MESSAGE = (
 
 
 def test_budget_terminal_classification(monkeypatch):
-    """Persistent 429 → error(kind='budget', locked message) → run_finished(turns=None)."""
+    """Persistent 429 → error(kind='budget', locked message) → run_finished(turns=None).
+
+    Patches the provider seam's public signal (``ProviderBudgetError``) directly —
+    no hand-built mirror of llm.py's wrapper.  The seam test in test_recovery.py
+    proves llm.py actually raises this on 429-class retry exhaustion.
+    """
     monkeypatch.setenv("AGENT_PUBLIC_ENABLED", "1")
     from api.main import app
 
-    budget_exc = _make_rate_limit_cause()
+    # Message is immaterial — the route classifies on type, not text, and asserts
+    # its own locked wording.  No mirror of llm.py's wrapper string here.
+    budget_exc = ProviderBudgetError("retries exhausted on 429-class error")
 
     with patch("agent.loop.llm.call", side_effect=budget_exc):
         with TestClient(app) as client:

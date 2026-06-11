@@ -252,10 +252,10 @@ def test_schema_round_trip():
         ErrorEvent(seq=5, t=6.0, kind="tool", message="bad arg"),
         ErrorEvent(seq=6, t=7.0, kind="loop", message="abort"),
         ErrorEvent(seq=7, t=7.5, kind="budget", message="spend cap reached"),
-        FinalAnswer(seq=7, t=8.0, answer="The cost is 8.5 bps."),
-        RunFinished(seq=8, t=9.0, turns=2),
-        RunFinished(seq=9, t=10.0, turns=3, usage={"input": 100, "output": 50}),
-        RunFinished(seq=10, t=11.0, turns=None),
+        FinalAnswer(seq=8, t=8.0, answer="The cost is 8.5 bps."),
+        RunFinished(seq=9, t=9.0, turns=2),
+        RunFinished(seq=10, t=10.0, turns=3, usage={"input": 100, "output": 50}),
+        RunFinished(seq=11, t=11.0, turns=None),
     ]
 
     for original in samples:

@@ -1,3 +1,12 @@
+"""
+Provider seam for the agent.
+
+This module is the *sole* provider-coupling point: it is the only place that
+imports the provider SDK (``anthropic``) — and that includes budget-error
+classification. A provider swap must map the new provider's 429-class
+retry-exhaustion error to ``ProviderBudgetError`` here and touch nothing else;
+the rest of the codebase reacts only to the provider-agnostic exception.
+"""
 from __future__ import annotations
 
 import time
@@ -10,6 +19,12 @@ _client: anthropic.Anthropic | None = None
 
 # Delay schedule (seconds) for successive retry attempts: 1s, 2s, 4s, …
 _BACKOFF_BASE = 1.0
+
+
+class ProviderBudgetError(Exception):
+    """Raised when retries are exhausted on a 429-class provider error
+    (spend cap or sustained throttling). Provider-agnostic signal;
+    detection of the provider-specific exception stays in this module."""
 
 
 def _get_client() -> anthropic.Anthropic:
@@ -60,6 +75,11 @@ def call(
         if attempt < LLM_MAX_RETRIES - 1:
             delay = _BACKOFF_BASE * (2 ** attempt)
             time.sleep(delay)
+
+    if isinstance(last_exc, anthropic.RateLimitError):
+        raise ProviderBudgetError(
+            f"LLM call failed after {LLM_MAX_RETRIES} retries. Last error: {last_exc}"
+        ) from last_exc
 
     raise RuntimeError(
         f"LLM call failed after {LLM_MAX_RETRIES} retries. Last error: {last_exc}"
