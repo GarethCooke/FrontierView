@@ -1,6 +1,11 @@
 # FrontierView
 
-A FastAPI service for evaluating model assumptions.
+A pre-trade market-impact analysis tool (Almgren–Chriss 2005). A single FastAPI
+app serves a static HTML UI, a JSON compute API, and an optional LLM agent — all
+from one origin, deployed as one Render service.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full picture (deployment, the
+UI/server boundary, component diagrams, and the agent subsystem).
 
 ## Quickstart
 
