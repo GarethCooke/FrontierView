@@ -86,9 +86,9 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 - [x] First-request cold-start note (Render free-tier spin-down).
 - Wiring: `docs/ask.html` served at `/ask`; "Ask the model" tab + left-rail item, `.active` per page; canonical topnav reconciled into `ask.html`; `/ask` route smoke test added. Automated suite green; live-LLM manual verification (brief §9, needs a dev key) pending before merge.
 
-#### Phase 4d — Technical write-up · status: TODO
+#### Phase 4d — Technical write-up · status: MERGED
 
-- [ ] **`agent/docs/agent_writeup.md`** — the detailed "what / how / why":
+- [x] **`agent/docs/agent_writeup.md`** — the detailed "what / how / why":
   - *What*: purpose + capabilities — natural-language Q&A over the FV market-impact model via native tool use, plus the guarded public demo surface.
   - *How*: hand-rolled loop; hosted brain (Haiku 4.5) isolated in `llm.py`; in-process tools wrapping FV functions (no copied logic); two-part result shape (summary + out-of-band detail store); thresholded compaction with running-state; two-surface error recovery; Pydantic single-source schemas; prompt caching; SSE streaming via the event-sink; the three-layer eval harness.
   - *Why*: the locked-decision rationale — DRY as a hard constraint; no framework ("everything hard lives in the scaffolding"); in-process over copied model logic; deterministic model as eval ground truth; synthetic recovery as estimator behaviour, not market calibration; AC schedules sub-optimal under the 0.6 power-law (feature, not bug); Almgren et al. (2005) correctness points.
