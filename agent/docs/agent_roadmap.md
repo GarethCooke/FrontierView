@@ -15,6 +15,7 @@ Single source of truth for the agent project. Update statuses as you go. Seed ea
 - **Stream transport = SSE**, one-directional (question in once, trace out). Consumed by the 4c UI via `fetch` + `ReadableStream`, not native `EventSource` (which is GET-only; the endpoint is POST). Frame shape: `event: <type>\ndata: <json>\n\n`, with `type` also inside `data`.
 - **Loop emits via an optional event-sink** (`event_sink=None` ⇒ byte-identical to prod; CLI and eval harness pass no sink). The streaming path uses a queue-bridging sink (`call_soon_threadsafe`) from the blocking worker thread to the async generator.
 - **Uniform stream terminal:** every stream ends with `run_finished` — normal: `… → final_answer → run_finished(turns=N)`; error: `… → error(kind="loop") → run_finished(turns=None)`. `tool_result` events stream the in-band summary only, never the detail store.
+  - Phase 4b adds `error(kind="budget")` alongside `kind="loop"` on this terminal — same `error → run_finished(turns=None)` shape, carrying a friendly monthly-cap message; the 4c UI special-cases it (warning styling, run ends cleanly).
 - **Public `/agent` is gated behind `AGENT_PUBLIC_ENABLED` (default off)** so the endpoint can sit on `master` without exposing a live, cost-bearing surface before the 4b guardrails land.
 - **Hard spend cap lives at the Anthropic key/workspace level**, not in-app — Render's ephemeral filesystem + idle spin-down make any in-app counter an unreliable financial backstop. In-app rate limiting handles throttling/UX only.
 - **Public demo = bounded curated questions first** (reuse the eval curated set: known-good behaviour, zero prompt-injection surface). Free-text is gated/deferred.
@@ -72,17 +73,18 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 - [x] Opus adversarial pass + remediation: F1 (vacuous byte-identical test → real constructor-spy + positive control), F2 (uniform terminal: optional `RunFinished.turns`, worker emits `error(loop) → run_finished(turns=None)`), F3 (AC2 docstring claims only what it tests). Live `curl -N` confirmed SSE framing + the error terminal over the wire. 137 tests green (agent + FV). See `cc_brief_agent_phase4a_streaming_spine.md` + `cc_brief_agent_phase4a_review_fixes.md`.
 - [x] Merged to `master`.
 
-#### Phase 4b — Guardrails · status: TODO
+#### Phase 4b — Guardrails · status: MERGED
 
-- [ ] Per-IP / per-session rate limiting (throttling/UX).
-- [ ] Hard spend cap at the Anthropic key/workspace level (dedicated low-cap key) — the true financial backstop, independent of app state.
-- [ ] Demo-mode: bounded question allowlist (reuse the eval curated set); turn/size caps.
+- [x] Per-IP / per-session rate limiting (throttling/UX).
+- [x] Hard spend cap at the Anthropic key/workspace level (dedicated low-cap key) — the true financial backstop, independent of app state.
+- [x] Demo-mode: bounded question allowlist (reuse the eval curated set); turn/size caps.
 
-#### Phase 4c — UI tab · status: TODO
+#### Phase 4c — UI tab · status: MERGED
 
-- [ ] "Ask the model" tab on FV showing the live tool-call trace + charts responding (consumed via `fetch` + `ReadableStream`).
-- [ ] Make clear in the UI that symbol params are stored reference values, not a live feed.
-- [ ] First-request cold-start note (Render free-tier spin-down).
+- [x] "Ask the model" tab on FV showing the live tool-call trace + charts responding (consumed via `fetch` + `ReadableStream`).
+- [x] Make clear in the UI that symbol params are stored reference values, not a live feed.
+- [x] First-request cold-start note (Render free-tier spin-down).
+- Wiring: `docs/ask.html` served at `/ask`; "Ask the model" tab + left-rail item, `.active` per page; canonical topnav reconciled into `ask.html`; `/ask` route smoke test added. Automated suite green; live-LLM manual verification (brief §9, needs a dev key) pending before merge.
 
 #### Phase 4d — Technical write-up · status: TODO
 
@@ -131,4 +133,5 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 - `agent/docs/briefs/cc_brief_agent_phase3_review_fixes.md` — Phase 3 adversarial-review remediation (B1/B2, S1–S3, M1–M4, N1–N7).
 - `agent/docs/briefs/cc_brief_agent_phase4a_streaming_spine.md` — Phase 4a build brief.
 - `agent/docs/briefs/cc_brief_agent_phase4a_review_fixes.md` — Phase 4a adversarial-review remediation (F1/F2/F3).
+- `agent/docs/briefs/cc_brief_agent_phase4c_ui_tab.md` — Phase 4c UI-tab wiring brief.
 - `agent/docs/frontierview_agent_cost_model.xlsx` — driveable per-query / monthly cost model across providers.

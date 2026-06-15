@@ -55,6 +55,15 @@ def test_analyse_all_symbols_return_200(symbol):
     assert response.status_code == 200
 
 
+def test_ask_page_returns_html():
+    response = client.get("/ask")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    body = response.text
+    assert "<title>Ask the model" in body
+    assert 'id="trace"' in body
+
+
 def test_calibration_run_returns_fitted_params():
     response = client.post("/api/calibration/run", json={"seed": 42, "n_orders": 500})
     assert response.status_code == 200
