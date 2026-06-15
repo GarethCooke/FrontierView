@@ -79,7 +79,7 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 - [x] Hard spend cap at the Anthropic key/workspace level (dedicated low-cap key) — the true financial backstop, independent of app state.
 - [x] Demo-mode: bounded question allowlist (reuse the eval curated set); turn/size caps.
 
-#### Phase 4c — UI tab · status: IN REVIEW (feature/agent-phase4c)
+#### Phase 4c — UI tab · status: MERGED
 
 - [x] "Ask the model" tab on FV showing the live tool-call trace + charts responding (consumed via `fetch` + `ReadableStream`).
 - [x] Make clear in the UI that symbol params are stored reference values, not a live feed.
