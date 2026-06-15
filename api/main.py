@@ -85,6 +85,11 @@ def calibration():
     return FileResponse("docs/calibration.html", media_type="text/html")
 
 
+@app.get("/ask")
+def ask():
+    return FileResponse("docs/ask.html", media_type="text/html")
+
+
 _SCHEDULE_FNS = {
     "twap": schedule_twap,
     "front_loaded": schedule_front_loaded,

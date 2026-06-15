@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<!--
+  FrontierView — "Ask the model" tab  (Phase 4c)
+  ================================================
+  Drop in as docs/ask.html. Served same-origin by api.main:app at /ask
+  (add the page route mirroring /about and /calibration — see below).
+
+  A CLIENT of the 4b /agent endpoint; it consumes the contract, never changes it.
+  SSE via fetch + ReadableStream (POST body, so not EventSource). Question set is
+  server-driven from GET /agent/questions.
+
+  Reconciled against the live FV assets (design-tokens.css / nav.css / nav.js /
+  api/main.py):
+    - THEME: uses FV's real --md-* tokens, so light/dark follows the existing
+      toggle automatically. Charts recolour on theme change via the site's
+      window.updateChartColors hook (called by nav.js applyTheme()).
+    - NAV: nav.js does NOT inject markup — it enhances it (theme toggle, sliding
+      pill, mobile menu). The <header class="topnav"> below is the canonical block
+      copied from the existing pages (label/order/logo parity) with .active on the
+      Ask link; it carries the IDs nav.js expects (#topnav-desktop, #topnav-pill,
+      #topnav-mobile-menu, #hamburger-icon, #hamburger-btn, .theme-icon). The left
+      .nav rail and the .layout wrapper match the other pages, with the Ask rail
+      item marked .active.
+    - /analyse: the efficient_frontier chart re-derives arrays from FV's existing
+      /analyse using the agent's own tool_call params (ROADMAP §3b). Mapping is
+      exact for the response (frontier[].variance_bps2 -> x, expected_cost_bps
+      -> y). One residual assumption: the efficient_frontier tool's input field
+      names match cost_and_variance's (symbol / order_size / horizon_hours) —
+      verify in agent/tools.py. The call is FAIL-SOFT regardless: any non-200 or
+      unexpected shape shows "unavailable" and the page keeps working. The cost-
+      decomposition chart needs NO recompute — it plots straight from
+      tool_result.summary, fixed by the stream contract.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ask the model — FrontierView</title>
+
+  <!-- shared chrome + tokens (same paths the other pages use; served by main.py) -->
+  <link rel="stylesheet" href="/design-tokens.css" />
+  <link rel="stylesheet" href="/nav.css" />
+
+  <!-- Inter + Space Grotesk are referenced by nav.css but not loaded there.
+       Drop this block if your pages self-host these faces. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js 4.x via CDN (pin to whatever the other pages pin). UMD auto-registers. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root { --ask-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+
+    .ask-main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2.25rem 24px 4rem;
+    }
+
+    .ask-head h1 {
+      font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+      letter-spacing: -0.01em;
+      margin: 0 0 0.35rem;
+    }
+    .ask-head p {
+      margin: 0;
+      max-width: 64ch;
+      color: var(--md-on-surface-var);
+    }
+
+    /* Reference-not-live disclosure (locked roadmap item) */
+    .ask-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1.1rem 0 0;
+      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--md-outline-var);
+      border-left: 3px solid var(--md-warning);
+      border-radius: var(--md-shape-sm);
+      background: var(--md-surface-1);
+      color: var(--md-on-surface-var);
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+    .ask-badge strong { color: var(--md-on-surface); font-weight: 600; }
+
+    .ask-questions { margin-top: 1.6rem; }
+    .ask-questions__label {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--md-on-surface-var);
+      margin-bottom: 0.6rem;
+    }
+    .ask-qgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+      gap: 0.55rem;
+    }
+    .ask-q {
+      text-align: left;
+      font-family: inherit;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      color: var(--md-on-surface);
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-md);
+      padding: 0.7rem 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.05s ease;
+    }
+    .ask-q:hover:not(:disabled) { border-color: var(--md-primary); background: var(--md-surface-2); }
+    .ask-q:active:not(:disabled) { transform: translateY(1px); }
+    .ask-q:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+    .ask-q[aria-pressed="true"] { border-color: var(--md-primary); background: oklch(65% 0.18 222 / 0.1); }
+    .ask-q:disabled { opacity: 0.5; cursor: default; }
+
+    .ask-status {
+      margin-top: 1.25rem;
+      min-height: 1.25rem;
+      font-size: 0.9rem;
+      color: var(--md-on-surface-var);
+    }
+    .ask-coldstart {
+      display: none;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 1.1rem;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-md);
+      background: var(--md-surface-1);
+      color: var(--md-on-surface-var);
+      font-size: 0.9rem;
+    }
+    .ask-coldstart.is-on { display: flex; }
+    .ask-spinner {
+      width: 14px; height: 14px; flex: 0 0 auto;
+      border: 2px solid var(--md-outline-var);
+      border-top-color: var(--md-primary);
+      border-radius: 50%;
+      animation: ask-spin 0.8s linear infinite;
+    }
+    @keyframes ask-spin { to { transform: rotate(360deg); } }
+
+    .ask-error {
+      display: none;
+      margin-top: 1.1rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--md-error);
+      border-left: 3px solid var(--md-error);
+      border-radius: var(--md-shape-md);
+      background: color-mix(in srgb, var(--md-error) 12%, var(--md-surface-1));
+      color: var(--md-on-surface);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .ask-error.is-on { display: block; }
+    .ask-error.is-budget {
+      border-color: var(--md-warning);
+      border-left-color: var(--md-warning);
+      background: color-mix(in srgb, var(--md-warning) 14%, var(--md-surface-1));
+    }
+
+    /* workspace: trace (left) + charts (right); answer spans below */
+    .ask-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 1.1rem;
+      margin-top: 1.6rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) { .ask-grid { grid-template-columns: 1fr; } }
+
+    .ask-panel {
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-md);
+      background: var(--md-surface-1);
+      overflow: hidden;
+    }
+    .ask-panel__head {
+      padding: 0.7rem 0.95rem;
+      border-bottom: 1px solid var(--md-outline-var);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--md-on-surface-var);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .ask-panel__body { padding: 0.95rem; }
+
+    #trace { display: flex; flex-direction: column; gap: 0.7rem; max-height: 560px; overflow-y: auto; }
+    .ask-trace-empty, .ask-charts-empty { color: var(--md-on-surface-var); font-size: 0.9rem; }
+
+    .ask-card {
+      border: 1px solid var(--md-outline-var);
+      border-radius: var(--md-shape-sm);
+      background: var(--md-surface-2);
+      padding: 0.7rem 0.8rem;
+      animation: ask-rise 0.18s ease;
+    }
+    @keyframes ask-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .ask-card__kind {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .ask-card--call .ask-card__kind { color: var(--md-secondary); }
+    .ask-card--result .ask-card__kind { color: var(--md-primary); }
+    .ask-card--text .ask-card__kind { color: var(--md-on-surface-var); }
+    .ask-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .ask-toolname { font-family: var(--ask-mono); font-size: 0.86rem; color: var(--md-on-surface); font-weight: 600; }
+    .ask-kv { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.7rem; margin-top: 0.45rem;
+              font-family: var(--ask-mono); font-size: 0.8rem; }
+    .ask-kv dt { color: var(--md-on-surface-var); }
+    .ask-kv dd { margin: 0; color: var(--md-on-surface); }
+
+    .ask-metrics { display: flex; flex-wrap: wrap; gap: 0.9rem; }
+    .ask-metric { display: flex; flex-direction: column; }
+    .ask-metric span { font-size: 0.68rem; color: var(--md-on-surface-var); text-transform: uppercase; letter-spacing: 0.07em; }
+    .ask-metric strong { font-family: var(--ask-mono); font-size: 1rem; color: var(--md-on-surface); }
+
+    .ask-prose { font-size: 0.9rem; line-height: 1.55; color: var(--md-on-surface); }
+    .ask-prose p { margin: 0 0 0.6rem; }
+    .ask-prose p:last-child { margin-bottom: 0; }
+    .ask-prose code { font-family: var(--ask-mono); font-size: 0.85em;
+                      background: var(--md-surface); padding: 0.05rem 0.3rem; border-radius: var(--md-shape-xs); }
+    .ask-prose h2, .ask-prose h3, .ask-prose h4 { margin: 0.4rem 0; line-height: 1.3; }
+    .ask-prose h3 { font-size: 1rem; }
+    .ask-prose h4 { font-size: 0.92rem; color: var(--md-on-surface-var); }
+    .ask-prose ul { margin: 0 0 0.6rem; padding-left: 1.2rem; }
+    .ask-prose li { margin: 0.15rem 0; }
+
+    .ask-chart-wrap { margin-bottom: 1rem; }
+    .ask-chart-wrap:last-child { margin-bottom: 0; }
+    .ask-chart-title { font-size: 0.8rem; color: var(--md-on-surface-var); margin-bottom: 0.4rem; }
+    .ask-canvas-box { position: relative; height: 240px; }
+    .ask-chart-note { color: var(--md-on-surface-var); font-size: 0.82rem; font-style: italic; }
+
+    .ask-answer-panel { margin-top: 1.1rem; display: none; }
+    .ask-answer-panel.is-on { display: block; }
+    .ask-answer-panel .ask-panel__head { color: var(--md-primary); }
+
+    .ask-thinking { display: none; align-items: center; gap: 0.5rem; color: var(--md-on-surface-var);
+                    font-size: 0.82rem; margin-left: auto; text-transform: none; letter-spacing: 0; }
+    .ask-thinking.is-on { display: inline-flex; }
+    .ask-thinking .ask-spinner { width: 12px; height: 12px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ask-spinner { animation: none; border-top-color: var(--md-primary); }
+      .ask-card { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== Top navigation =========================================
+       Canonical block from the existing pages (label/order/logo parity);
+       nav.js enhances it (theme toggle, sliding pill, mobile menu). .active +
+       aria-current sit on the Ask link. -->
+  <header class="topnav">
+    <div class="topnav-inner">
+      <div class="topnav-brand">
+        <a class="topnav-logo" href="https://garethcooke.com" aria-label="Gareth Cooke portfolio">
+          <img src="/iguana.svg" alt="Gareth Cooke" />
+        </a>
+        <a class="topnav-site-name" href="/" aria-label="FrontierView home">FrontierView</a>
+      </div>
+      <div class="topnav-desktop" id="topnav-desktop">
+        <div class="topnav-pill" id="topnav-pill"></div>
+        <a class="topnav-link" href="/">Tool</a>
+        <a class="topnav-link" href="/calibration">Calibrate</a>
+        <a class="topnav-link active" href="/ask" aria-current="page">Ask the model</a>
+        <a class="topnav-link" href="/about">Model docs</a>
+        <div class="topnav-divider"></div>
+        <a class="topnav-link" href="https://garethcooke.com/">Home</a>
+        <a class="topnav-link" href="https://garethcooke.com/projects">Projects</a>
+        <a class="topnav-link" href="https://garethcooke.com/contact">Contact</a>
+        <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span class="theme-icon"></span>
+        </button>
+      </div>
+      <div class="topnav-mobile">
+        <button type="button" class="topnav-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+          <span class="theme-icon"></span>
+        </button>
+        <button type="button" class="topnav-btn" id="hamburger-btn" onclick="toggleMobileMenu()"
+          aria-label="Toggle menu" aria-expanded="false">
+          <svg id="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="topnav-mobile-menu" id="topnav-mobile-menu">
+      <a class="topnav-mobile-link" href="/" onclick="toggleMobileMenu()">Tool</a>
+      <a class="topnav-mobile-link" href="/calibration" onclick="toggleMobileMenu()">Calibrate</a>
+      <a class="topnav-mobile-link active" href="/ask" aria-current="page" onclick="toggleMobileMenu()">Ask the model</a>
+      <a class="topnav-mobile-link" href="/about" onclick="toggleMobileMenu()">Model docs</a>
+      <div class="topnav-mobile-divider"></div>
+      <a class="topnav-mobile-link" href="https://garethcooke.com/">Home</a>
+      <a class="topnav-mobile-link" href="https://garethcooke.com/projects">Projects</a>
+      <a class="topnav-mobile-link" href="https://garethcooke.com/contact">Contact</a>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="FrontierView navigation">
+    <a class="nav-item" href="/" aria-label="Tool">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      Tool
+    </a>
+    <a class="nav-item" href="/calibration" aria-label="Calibrate">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+      </svg>
+      Calibrate
+    </a>
+    <a class="nav-item active" href="/ask" aria-label="Ask the model">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+      </svg>
+      Ask
+    </a>
+    <a class="nav-item" href="/about" aria-label="About">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+      About
+    </a>
+  </nav>
+
+  <div class="layout">
+  <main class="ask-main">
+    <header class="ask-head">
+      <h1>Ask the model</h1>
+      <p>
+        A small hand-rolled agent answers execution questions by calling the same
+        Almgren–Chriss compute core that powers the rest of FrontierView. Pick a
+        question and watch it reason — each tool call and result streams live, and
+        the charts re-derive from the agent's own inputs.
+      </p>
+    </header>
+
+    <div class="ask-badge">
+      <strong>Reference data, not a live feed.</strong>
+      Symbol parameters (ADV, volatility, spread) are stored reference values used
+      by the model, not real-time market data.
+    </div>
+
+    <section class="ask-questions" aria-labelledby="ask-q-label">
+      <div class="ask-questions__label" id="ask-q-label">Choose a question</div>
+      <div class="ask-qgrid" id="questions" role="group" aria-label="Curated questions"></div>
+      <div class="ask-status" id="questions-status">Loading questions…</div>
+    </section>
+
+    <div class="ask-coldstart" id="coldstart">
+      <span class="ask-spinner" aria-hidden="true"></span>
+      <span>Waking the model… the first request after an idle period can take up to a minute.</span>
+    </div>
+
+    <div class="ask-status" id="status" aria-live="polite"></div>
+    <div class="ask-error" id="error" role="alert"></div>
+
+    <div class="ask-grid">
+      <section class="ask-panel" aria-labelledby="trace-head">
+        <div class="ask-panel__head" id="trace-head">
+          Live trace
+          <span class="ask-thinking" id="thinking"><span class="ask-spinner" aria-hidden="true"></span>thinking…</span>
+        </div>
+        <div class="ask-panel__body">
+          <div id="trace"><div class="ask-trace-empty">The agent's tool calls and results will appear here.</div></div>
+        </div>
+      </section>
+
+      <section class="ask-panel" aria-labelledby="charts-head">
+        <div class="ask-panel__head" id="charts-head">Charts</div>
+        <div class="ask-panel__body">
+          <div id="charts"><div class="ask-charts-empty">Charts re-derive from the agent's tool calls as they run.</div></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="ask-panel ask-answer-panel" id="answer-panel" aria-labelledby="answer-head">
+      <div class="ask-panel__head" id="answer-head">Answer</div>
+      <div class="ask-panel__body">
+        <div class="ask-prose" id="answer"></div>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <!-- shared nav behaviour (theme toggle, pill, mobile menu); same path as other pages -->
+  <script src="/nav.js"></script>
+  <!-- site analytics, for parity with the other pages -->
+  <script src="/analytics.js"></script>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const els = {
+      questions:       document.getElementById("questions"),
+      questionsStatus: document.getElementById("questions-status"),
+      coldstart:       document.getElementById("coldstart"),
+      status:          document.getElementById("status"),
+      error:           document.getElementById("error"),
+      trace:           document.getElementById("trace"),
+      charts:          document.getElementById("charts"),
+      thinking:        document.getElementById("thinking"),
+      answerPanel:     document.getElementById("answer-panel"),
+      answer:          document.getElementById("answer"),
+    };
+
+    let busy = false;
+    let countdownTimer = null;
+
+    // Pair tool_result -> its tool_call input. The loop is strictly
+    // call -> result, so most-recent-by-name is the correct pairing.
+    const lastInputByName = Object.create(null);
+
+    // Chart instances by slot, destroyed on each new run.
+    const charts = { decomposition: null, frontier: null };
+
+    // ====================================================================
+    // FV /analyse recompute adapters (reconciled to api/main.py + models;
+    // FAIL-SOFT). Used only for the efficient_frontier chart. Cost
+    // decomposition does NOT touch these (it plots from tool_result.summary).
+    // ====================================================================
+    function buildAnalyseBody(input) {
+      // AnalyseRequest = {symbol, order_size, horizon_hours, schedule_type}.
+      // No lambda field — the frontier sweep is internal to generate_frontier,
+      // and the frontier is schedule-independent, so schedule_type just has to
+      // satisfy the schema.
+      return {
+        symbol:        input.symbol,
+        order_size:    input.order_size,
+        horizon_hours: input.horizon_hours,
+        schedule_type: input.schedule_type || "twap",
+      };
+    }
+
+    function extractFrontierPoints(resp) {
+      // AnalyseResponse.frontier = [{lambda_val, expected_cost_bps, variance_bps2}, ...]
+      const fr = resp && resp.frontier;
+      if (!Array.isArray(fr) || fr.length === 0) return null;
+      const pts = fr
+        .map(function (p) { return { x: Number(p.variance_bps2), y: Number(p.expected_cost_bps) }; })
+        .filter(function (p) { return isFinite(p.x) && isFinite(p.y); });
+      if (pts.length === 0) return null;
+      pts.sort(function (a, b) { return a.x - b.x; });
+      return pts;
+    }
+    // ====================================================================
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Minimal, XSS-safe markdown: escape first, then a few inline transforms.
+    function renderMarkdown(md) {
+      const inline = function (s) {
+        return s
+          .replace(/`([^`]+)`/g, "<code>$1</code>")
+          .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+          .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+      };
+      const lines = escapeHtml(md == null ? "" : md).split("\n");
+      const out = [];
+      let inList = false;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].replace(/\s+$/, "");
+        const li = line.match(/^\s*[-*]\s+(.*)$/);
+        if (li) {
+          if (!inList) { out.push("<ul>"); inList = true; }
+          out.push("<li>" + inline(li[1]) + "</li>");
+          continue;
+        }
+        if (inList) { out.push("</ul>"); inList = false; }
+        if (/^###\s+/.test(line))      out.push("<h4>" + inline(line.replace(/^###\s+/, "")) + "</h4>");
+        else if (/^##\s+/.test(line))  out.push("<h3>" + inline(line.replace(/^##\s+/, "")) + "</h3>");
+        else if (/^#\s+/.test(line))   out.push("<h3>" + inline(line.replace(/^#\s+/, "")) + "</h3>");
+        else if (line === "")          out.push("");
+        else                           out.push("<p>" + inline(line) + "</p>");
+      }
+      if (inList) out.push("</ul>");
+      return out.join("\n");
+    }
+
+    function fmt(n) {
+      if (typeof n !== "number" || !isFinite(n)) return String(n);
+      const abs = Math.abs(n);
+      if (abs !== 0 && (abs < 0.001 || abs >= 1e6)) return n.toExponential(3);
+      return (Math.round(n * 1e4) / 1e4).toLocaleString();
+    }
+
+    function clearChildren(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+    function setBusy(state) {
+      busy = state;
+      els.thinking.classList.toggle("is-on", state);
+      els.questions.querySelectorAll("button").forEach(function (b) { b.disabled = state; });
+    }
+
+    function showColdStart() { els.coldstart.classList.add("is-on"); }
+    function hideColdStart() { els.coldstart.classList.remove("is-on"); }
+    function setStatus(text) { els.status.textContent = text || ""; }
+
+    function showError(text, kind) {
+      els.error.textContent = text;
+      els.error.classList.add("is-on");
+      els.error.classList.toggle("is-budget", kind === "budget");
+    }
+    function clearError() {
+      els.error.classList.remove("is-on", "is-budget");
+      els.error.textContent = "";
+    }
+
+    function emptyNote(text, cls) {
+      const d = document.createElement("div");
+      d.className = cls;
+      d.textContent = text;
+      return d;
+    }
+
+    function resetRun() {
+      clearError();
+      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+      for (const k in lastInputByName) delete lastInputByName[k];
+      Object.keys(charts).forEach(function (k) {
+        if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+      });
+      clearChildren(els.trace);
+      els.trace.appendChild(emptyNote("The agent's tool calls and results will appear here.", "ask-trace-empty"));
+      clearChildren(els.charts);
+      els.charts.appendChild(emptyNote("Charts re-derive from the agent's tool calls as they run.", "ask-charts-empty"));
+      els.answer.innerHTML = "";
+      els.answerPanel.classList.remove("is-on");
+    }
+
+    function clearPlaceholder(container, cls) {
+      const ph = container.querySelector("." + cls);
+      if (ph) ph.remove();
+    }
+
+    // ---- trace rendering ------------------------------------------------
+    function appendCard(node) {
+      clearPlaceholder(els.trace, "ask-trace-empty");
+      els.trace.appendChild(node);
+      els.trace.scrollTop = els.trace.scrollHeight;
+    }
+
+    function renderToolCall(data) {
+      const input = data.input || {};
+      lastInputByName[data.name] = input;
+
+      const card = document.createElement("div");
+      card.className = "ask-card ask-card--call";
+      card.appendChild(cardKind("Tool call"));
+
+      const name = document.createElement("div");
+      name.className = "ask-toolname";
+      name.textContent = data.name;
+      card.appendChild(name);
+
+      const keys = Object.keys(input);
+      if (keys.length) {
+        const dl = document.createElement("dl");
+        dl.className = "ask-kv";
+        keys.forEach(function (k) {
+          const dt = document.createElement("dt"); dt.textContent = k;
+          const dd = document.createElement("dd");
+          const v = input[k];
+          dd.textContent = (typeof v === "number") ? fmt(v) : String(v);
+          dl.appendChild(dt); dl.appendChild(dd);
+        });
+        card.appendChild(dl);
+      }
+      appendCard(card);
+    }
+
+    // Fields that merely echo the tool_call params — already on the call card.
+    const ECHO_FIELDS = { symbol: 1, side: 1, order_size: 1, horizon_hours: 1 };
+
+    function isPointObj(v) {
+      return v && typeof v === "object" && !Array.isArray(v) &&
+             (v.expected_cost_bps != null || v.variance_bps2 != null);
+    }
+
+    function renderToolResult(data) {
+      const summary = data.summary || {};
+      const card = document.createElement("div");
+      card.className = "ask-card ask-card--result";
+      card.appendChild(cardKind("Result · " + data.name));
+
+      // Prominent metrics when the tool exposes them at top level (cost_and_variance).
+      const metrics = document.createElement("div");
+      metrics.className = "ask-metrics";
+      addMetric(metrics, "Expected cost", summary.expected_cost_bps, "bps");
+      addMetric(metrics, "Variance", summary.variance_bps2, "bps²");
+      if (metrics.childNodes.length) card.appendChild(metrics);
+
+      // Decomposition (cost_and_variance) — kv rows.
+      const decomp = summary.decomposition;
+      if (decomp) {
+        const dl = document.createElement("dl");
+        dl.className = "ask-kv";
+        [["temporary_bps", "temporary"], ["permanent_bps", "permanent"],
+         ["spread_bps", "spread"], ["total_bps", "total"]].forEach(function (pair) {
+          if (decomp[pair[0]] == null) return;
+          const dt = document.createElement("dt"); dt.textContent = pair[1] + " (bps)";
+          const dd = document.createElement("dd"); dd.textContent = fmt(decomp[pair[0]]);
+          dl.appendChild(dt); dl.appendChild(dd);
+        });
+        card.appendChild(dl);
+      }
+
+      // Generic view of the remaining summary fields — covers every other tool
+      // (efficient_frontier low/high/knee, compare_schedules, sweep, list_symbols,
+      // get_symbol_reference, describe_model) whose summaries differ from cost_and_variance.
+      const dl = document.createElement("dl");
+      dl.className = "ask-kv";
+      Object.keys(summary).forEach(function (k) {
+        if (ECHO_FIELDS[k]) return;
+        if (k === "decomposition" || k === "expected_cost_bps" || k === "variance_bps2") return;
+        if (k === "warning" || k === "caveat") return;   // shown as a note below
+        const v = summary[k];
+        let text;
+        if (isPointObj(v)) {
+          text = "cost " + fmt(v.expected_cost_bps) + " bps · var " + fmt(v.variance_bps2) + " bps²";
+        } else if (Array.isArray(v)) {
+          text = (v.length <= 3 && v.every(function (x) { return typeof x === "number"; }))
+            ? "[" + v.map(fmt).join(", ") + "]"
+            : v.length + (v.length === 1 ? " item" : " items");
+        } else if (v != null && typeof v === "object") {
+          return;                                          // nested non-point object: skip in card
+        } else if (typeof v === "number") {
+          text = fmt(v);
+        } else {
+          text = String(v);
+        }
+        const dt = document.createElement("dt"); dt.textContent = k;
+        const dd = document.createElement("dd"); dd.textContent = text;
+        dl.appendChild(dt); dl.appendChild(dd);
+      });
+      if (dl.childNodes.length) card.appendChild(dl);
+
+      // Surface the locked caveats/warnings (>ADV warning, structural/calibrated caveat).
+      const note = summary.caveat || summary.warning;
+      if (note) {
+        const n = document.createElement("div");
+        n.className = "ask-chart-note";
+        n.textContent = note;
+        card.appendChild(n);
+      }
+
+      appendCard(card);
+
+      // charts react to this result (ROADMAP §3b)
+      if (data.name === "cost_and_variance" && decomp) {
+        drawDecomposition(decomp);
+      } else if (data.name === "efficient_frontier") {
+        const pts = [];
+        [["low_lambda_end", "low λ"], ["knee", "knee"], ["high_lambda_end", "high λ"]].forEach(function (pair) {
+          const p = summary[pair[0]];
+          if (isPointObj(p)) pts.push({ x: Number(p.variance_bps2), y: Number(p.expected_cost_bps), label: pair[1] });
+        });
+        deriveAndDrawFrontier(lastInputByName["efficient_frontier"], pts);
+      }
+    }
+
+    function cardKind(label) {
+      const k = document.createElement("div");
+      k.className = "ask-card__kind";
+      const dot = document.createElement("span");
+      dot.className = "ask-dot";
+      k.appendChild(dot);
+      k.appendChild(document.createTextNode(label));
+      return k;
+    }
+
+    function addMetric(container, label, value, unit) {
+      if (value == null) return;
+      const m = document.createElement("div");
+      m.className = "ask-metric";
+      const s = document.createElement("span"); s.textContent = label;
+      const strong = document.createElement("strong");
+      strong.textContent = fmt(value) + (unit ? " " + unit : "");
+      m.appendChild(s); m.appendChild(strong);
+      container.appendChild(m);
+    }
+
+    function renderAssistantText(data) {
+      if (!data.text || !String(data.text).trim()) return;
+      const card = document.createElement("div");
+      card.className = "ask-card ask-card--text";
+      card.appendChild(cardKind("Reasoning"));
+      const prose = document.createElement("div");
+      prose.className = "ask-prose";
+      prose.innerHTML = renderMarkdown(data.text);
+      card.appendChild(prose);
+      appendCard(card);
+    }
+
+    function renderFinalAnswer(data) {
+      els.answer.innerHTML = renderMarkdown(data.answer);
+      els.answerPanel.classList.add("is-on");
+      els.answerPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // ---- charts ---------------------------------------------------------
+    function chartColors() {
+      const cs = getComputedStyle(document.documentElement);
+      const g = function (n, fb) { return cs.getPropertyValue(n).trim() || fb; };
+      return {
+        primary:   g("--md-primary", "#22d3ee"),
+        secondary: g("--md-secondary", "#67e8f9"),
+        tertiary:  g("--md-tertiary", "#d6bee4"),
+        warning:   g("--md-warning", "#ffb74d"),
+        muted:     g("--md-on-surface-var", "#8b9dbf"),
+        outline:   g("--md-outline-var", "rgba(255,255,255,0.07)"),
+      };
+    }
+
+    function applyAxisColors(chart, c) {
+      ["x", "y"].forEach(function (ax) {
+        const s = chart.options.scales && chart.options.scales[ax];
+        if (!s) return;
+        if (s.ticks) s.ticks.color = c.muted;
+        if (s.grid)  s.grid.color = c.outline;
+        if (s.title) s.title.color = c.muted;
+      });
+    }
+
+    // Called by nav.js applyTheme() on theme toggle.
+    function recolorCharts() {
+      const c = chartColors();
+      if (charts.decomposition) {
+        charts.decomposition.data.datasets[0].backgroundColor = [c.primary, c.secondary, c.tertiary];
+        applyAxisColors(charts.decomposition, c);
+        charts.decomposition.update("none");
+      }
+      if (charts.frontier) {
+        charts.frontier.data.datasets.forEach(function (ds) {
+          const col = (ds.label === "Agent samples") ? c.tertiary : c.primary;
+          ds.borderColor = col; ds.backgroundColor = col;
+        });
+        applyAxisColors(charts.frontier, c);
+        charts.frontier.update("none");
+      }
+    }
+    window.updateChartColors = recolorCharts;
+
+    function chartCanvas(slot, title) {
+      clearPlaceholder(els.charts, "ask-charts-empty");
+      let wrap = document.getElementById("chart-" + slot);
+      if (!wrap || !wrap.querySelector("canvas")) {
+        if (wrap) wrap.remove();
+        wrap = document.createElement("div");
+        wrap.className = "ask-chart-wrap";
+        wrap.id = "chart-" + slot;
+        const t = document.createElement("div");
+        t.className = "ask-chart-title";
+        t.textContent = title;
+        const box = document.createElement("div");
+        box.className = "ask-canvas-box";
+        const canvas = document.createElement("canvas");
+        box.appendChild(canvas);
+        wrap.appendChild(t); wrap.appendChild(box);
+        els.charts.appendChild(wrap);
+      }
+      return wrap.querySelector("canvas");
+    }
+
+    function noteChart(slot, title, message) {
+      clearPlaceholder(els.charts, "ask-charts-empty");
+      let wrap = document.getElementById("chart-" + slot);
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.className = "ask-chart-wrap";
+        wrap.id = "chart-" + slot;
+        els.charts.appendChild(wrap);
+      }
+      wrap.innerHTML =
+        '<div class="ask-chart-title">' + escapeHtml(title) + "</div>" +
+        '<div class="ask-chart-note">' + escapeHtml(message) + "</div>";
+    }
+
+    function drawDecomposition(decomp) {
+      const c = chartColors();
+      const canvas = chartCanvas("decomposition", "Cost decomposition (bps)");
+      if (charts.decomposition) { charts.decomposition.destroy(); charts.decomposition = null; }
+      charts.decomposition = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: ["Temporary", "Permanent", "Spread"],
+          datasets: [{
+            data: [decomp.temporary_bps, decomp.permanent_bps, decomp.spread_bps],
+            backgroundColor: [c.primary, c.secondary, c.tertiary],
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: c.muted }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: c.muted }, grid: { color: c.outline },
+                 title: { display: true, text: "bps", color: c.muted } },
+          },
+        },
+      });
+    }
+
+    async function deriveAndDrawFrontier(input, agentPoints) {
+      // Curve via /analyse recompute = the model frontier locus (same market_impact
+      // core the agent's tool uses). agentPoints are the agent's own low/high/knee
+      // samples from the stream, overlaid so agreement is visible and robust to any
+      // λ-range difference (the tool sweeps [1e-9,1e-1]×n_points; /analyse uses
+      // generate_frontier's own grid). side/lambda_range/n_points aren't sent —
+      // /analyse can't take them and the cost/variance locus doesn't need them.
+      // If the recompute fails we still plot the agent's points.
+      let curve = null;
+      if (input) {
+        try {
+          const r = await fetch("/analyse", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildAnalyseBody(input)),
+          });
+          if (r.ok) curve = extractFrontierPoints(await r.json());
+        } catch (e) { /* fall through to agent points only */ }
+      }
+      if ((curve && curve.length) || (agentPoints && agentPoints.length)) {
+        drawFrontier(curve, agentPoints);
+      } else {
+        noteChart("frontier", "Efficient frontier", "Frontier unavailable.");
+      }
+    }
+
+    function drawFrontier(curvePoints, agentPoints) {
+      const c = chartColors();
+      const canvas = chartCanvas("frontier", "Efficient frontier");
+      if (charts.frontier) { charts.frontier.destroy(); charts.frontier = null; }
+      const datasets = [];
+      if (curvePoints && curvePoints.length) {
+        datasets.push({
+          label: "Model frontier",
+          data: curvePoints,
+          parsing: false,
+          showLine: true,
+          borderColor: c.primary,
+          backgroundColor: c.primary,
+          pointRadius: 0,
+          tension: 0.15,
+        });
+      }
+      if (agentPoints && agentPoints.length) {
+        datasets.push({
+          label: "Agent samples",
+          data: agentPoints,
+          parsing: false,
+          showLine: false,
+          borderColor: c.tertiary,
+          backgroundColor: c.tertiary,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+        });
+      }
+      charts.frontier = new Chart(canvas, {
+        type: "scatter",
+        data: { datasets: datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: datasets.length > 1, labels: { color: c.muted } },
+            tooltip: { callbacks: { label: function (ctx) {
+              const lbl = ctx.raw && ctx.raw.label ? ctx.raw.label + ": " : "";
+              return lbl + "var " + fmt(ctx.parsed.x) + " · cost " + fmt(ctx.parsed.y) + " bps";
+            } } },
+          },
+          scales: {
+            x: { type: "linear", ticks: { color: c.muted }, grid: { color: c.outline },
+                 title: { display: true, text: "Variance (bps²)", color: c.muted } },
+            y: { ticks: { color: c.muted }, grid: { color: c.outline },
+                 title: { display: true, text: "Expected cost (bps)", color: c.muted } },
+          },
+        },
+      });
+    }
+
+    // ---- SSE frame parsing ----------------------------------------------
+    function parseFrame(raw) {
+      const lines = raw.split("\n");
+      let eventType = null;
+      const dataLines = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.charAt(0) === ":") continue;               // comment / keepalive
+        if (line.indexOf("event:") === 0) eventType = line.slice(6).trim();
+        else if (line.indexOf("data:") === 0) dataLines.push(line.slice(5).replace(/^ /, ""));
+      }
+      if (dataLines.length === 0) return null;               // keepalive-only frame
+      let data;
+      try { data = JSON.parse(dataLines.join("\n")); }
+      catch (e) { return null; }
+      return { eventType: eventType, data: data };
+    }
+
+    function dispatch(type, data) {
+      switch (type) {
+        case "run_started":    onRunStarted(data); break;
+        case "tool_call":      renderToolCall(data); break;
+        case "tool_result":    renderToolResult(data); break;
+        case "assistant_text": renderAssistantText(data); break;
+        case "final_answer":   renderFinalAnswer(data); break;
+        case "error":          onErrorFrame(data); break;
+        case "run_finished":   onRunFinished(data); break;
+        default: /* forward-compatible: ignore unknown event types */ break;
+      }
+    }
+
+    function onRunStarted(data) {
+      const cfg = data.config_summary || {};
+      const model = cfg.model ? cfg.model.replace(/-\d{8}.*$/, "") : "the model";
+      setStatus("Running on " + model + (cfg.max_iters ? " · up to " + cfg.max_iters + " steps" : "") + "…");
+    }
+
+    function onErrorFrame(data) {
+      // PATH 2: an HTTP-200 stream that terminates in an error frame.
+      const kind = data.kind || "loop";
+      const msg = data.message || data.text || data.detail ||
+                  (kind === "budget"
+                    ? "The demo's monthly usage cap has been reached. Please try again later."
+                    : "Something went wrong while the model was running.");
+      showError(msg, kind);
+      setStatus("");
+    }
+
+    function onRunFinished(data) {
+      // The single uniform "run is over" signal — fires for normal, loop, and
+      // budget terminations. Clean up here regardless of outcome.
+      if (data && data.turns != null) {
+        setStatus("Done · " + data.turns + (data.turns === 1 ? " turn." : " turns."));
+      } else if (!els.error.classList.contains("is-on")) {
+        setStatus("");
+      }
+      setBusy(false);
+    }
+
+    // ---- pre-stream rejection (PATH 1) ----------------------------------
+    async function handlePreStreamRejection(resp) {
+      let detail = "";
+      try { const j = await resp.json(); detail = j.detail || j.message || ""; } catch (e) {}
+
+      if (resp.status === 429) {
+        const ra = parseInt(resp.headers.get("Retry-After") || "0", 10);
+        if (ra > 0) startRetryCountdown(ra);
+        else showError("You've hit the demo's rate limit. Please wait a moment and try again.");
+      } else if (resp.status === 404) {
+        showError("The live demo is currently offline. Please check back later.");
+      } else if (resp.status === 422) {
+        showError("That question couldn't be processed." + (detail ? " (" + detail + ")" : ""));
+      } else {
+        showError("The request failed (HTTP " + resp.status + ")." + (detail ? " " + detail : ""));
+      }
+    }
+
+    function startRetryCountdown(seconds) {
+      if (countdownTimer) clearInterval(countdownTimer);
+      let remaining = seconds;
+      const tick = function () {
+        if (remaining <= 0) {
+          clearInterval(countdownTimer); countdownTimer = null;
+          clearError();
+          setStatus("You can try another question now.");
+          return;
+        }
+        showError("Rate limit reached. Try again in " + remaining + "s.");
+        remaining -= 1;
+      };
+      tick();
+      countdownTimer = setInterval(tick, 1000);
+    }
+
+    // ---- run ------------------------------------------------------------
+    async function runQuestion(questionId, btn) {
+      if (busy) return;
+      setBusy(true);
+      resetRun();
+      markPressed(btn);
+      showColdStart();
+      setStatus("");
+
+      let sawFirstFrame = false;
+      let resp;
+      try {
+        resp = await fetch("/agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question_id: questionId }),
+        });
+      } catch (e) {
+        hideColdStart();
+        showError("Couldn't reach the model service. It may be waking up — try again in a moment.");
+        setBusy(false);
+        return;
+      }
+
+      // PATH 1: rejection before the stream opens — branch on HTTP status.
+      if (!resp.ok || !resp.body) {
+        hideColdStart();
+        await handlePreStreamRejection(resp);
+        setBusy(false);
+        return;
+      }
+
+      // PATH 2: read the SSE stream.
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          buffer += decoder.decode(chunk.value, { stream: true }).replace(/\r\n/g, "\n");
+          let idx;
+          while ((idx = buffer.indexOf("\n\n")) !== -1) {
+            const rawFrame = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            const frame = parseFrame(rawFrame);
+            if (!frame) continue;                          // keepalive / unparseable
+            if (!sawFirstFrame) { sawFirstFrame = true; hideColdStart(); }
+            const type = (frame.data && frame.data.type) || frame.eventType;
+            dispatch(type, frame.data);
+          }
+        }
+      } catch (e) {
+        if (!els.error.classList.contains("is-on")) {
+          showError("The connection to the model was interrupted. Please try again.");
+        }
+      } finally {
+        hideColdStart();
+        setBusy(false);    // run_finished also calls this; idempotent.
+      }
+    }
+
+    function markPressed(btn) {
+      els.questions.querySelectorAll("button").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+    }
+
+    // ---- question loading ----------------------------------------------
+    async function loadQuestions() {
+      try {
+        const r = await fetch("/agent/questions", { headers: { "Accept": "application/json" } });
+        if (!r.ok) {
+          els.questionsStatus.textContent =
+            (r.status === 404)
+              ? "The live demo is currently offline. Please check back later."
+              : "Couldn't load questions (HTTP " + r.status + ").";
+          return;
+        }
+        const questions = await r.json();
+        if (!Array.isArray(questions) || questions.length === 0) {
+          els.questionsStatus.textContent = "No questions are available right now.";
+          return;
+        }
+        clearChildren(els.questions);
+        questions.forEach(function (q) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "ask-q";
+          btn.textContent = q.text;
+          btn.setAttribute("aria-pressed", "false");
+          btn.addEventListener("click", function () { runQuestion(q.id, btn); });
+          els.questions.appendChild(btn);
+        });
+        els.questionsStatus.textContent = "";
+      } catch (e) {
+        els.questionsStatus.textContent = "Couldn't reach the demo service. It may be waking up — refresh in a moment.";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadQuestions);
+  })();
+  </script>
+</body>
+</html>
