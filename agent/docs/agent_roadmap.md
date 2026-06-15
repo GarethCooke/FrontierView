@@ -94,9 +94,9 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
   - *Why*: the locked-decision rationale — DRY as a hard constraint; no framework ("everything hard lives in the scaffolding"); in-process over copied model logic; deterministic model as eval ground truth; synthetic recovery as estimator behaviour, not market calibration; AC schedules sub-optimal under the 0.6 power-law (feature, not bug); Almgren et al. (2005) correctness points.
   - Assembled from the locked decisions in this roadmap + the CC briefs — consolidation, not reconstruction.
 
-#### Phase 4e — Portfolio framing · status: TODO
+#### Phase 4e — Portfolio framing · status: MERGED
 
-- [ ] Prominent section on the FV project page + the write-up linked as the long-form. Shares source material with `frontierview_interview_prep.md`.
+- [x] Prominent section on the FV project page + the write-up linked as the long-form. Shares source material with `frontierview_interview_prep.md`.
 
 ---
 
@@ -134,4 +134,5 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 - `agent/docs/briefs/cc_brief_agent_phase4a_streaming_spine.md` — Phase 4a build brief.
 - `agent/docs/briefs/cc_brief_agent_phase4a_review_fixes.md` — Phase 4a adversarial-review remediation (F1/F2/F3).
 - `agent/docs/briefs/cc_brief_agent_phase4c_ui_tab.md` — Phase 4c UI-tab wiring brief.
+- `agent/docs/briefs/cc_brief_agent_phase4e_portfolio.md` — Phase 4e portfolio-section build brief (portfolio-hub repo).
 - `agent/docs/frontierview_agent_cost_model.xlsx` — driveable per-query / monthly cost model across providers.
