@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -39,12 +40,16 @@ _EVAL_BLOCK_RE = re.compile(r"<eval_answer>.*?</eval_answer>", re.DOTALL)
 _BACKOFF_BASE = 1.0
 
 _client: anthropic.Anthropic | None = None
+_client_lock = threading.Lock()
 
 
 def _get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=api_key())
+        # Double-checked locking: judge runs may race on first use.
+        with _client_lock:
+            if _client is None:
+                _client = anthropic.Anthropic(api_key=api_key())
     return _client
 
 

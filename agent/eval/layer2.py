@@ -69,7 +69,8 @@ def _flatten_summary_numbers(summaries: list[dict]) -> list[float]:
     numbers: list[float] = []
 
     def _walk(obj: object) -> None:
-        if isinstance(obj, (int, float)):
+        # bool is a subclass of int — exclude it so True/False is not pooled as 1/0.
+        if isinstance(obj, (int, float)) and not isinstance(obj, bool):
             numbers.append(float(obj))
         elif isinstance(obj, dict):
             for v in obj.values():

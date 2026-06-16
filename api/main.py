@@ -1,5 +1,6 @@
 """FrontierView FastAPI application — market impact analysis endpoints."""
 
+import os
 from dataclasses import dataclass
 
 from fastapi import FastAPI, HTTPException, Request
@@ -39,9 +40,22 @@ app = FastAPI(title="FrontierView", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
+# CORS — the shipped UI is same-origin and needs no CORS at all; the allowlist
+# exists only for cross-origin callers (e.g. the portfolio site). Scoped to a
+# known set rather than "*", overridable via CORS_ALLOW_ORIGINS (comma-separated)
+# for other deployments. No credentials are used, so the list is the only guard.
+_DEFAULT_ALLOWED_ORIGINS = [
+    "https://garethcooke.com",
+    "https://www.garethcooke.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+_origins_env = os.getenv("CORS_ALLOW_ORIGINS", "")
+ALLOWED_ORIGINS = [o.strip() for o in _origins_env.split(",") if o.strip()] or _DEFAULT_ALLOWED_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

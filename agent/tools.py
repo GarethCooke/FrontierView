@@ -100,7 +100,6 @@ class OptimalScheduleInput(BaseModel):
 
 class CompareSchedulesInput(BaseModel):
     symbol: str
-    side: Literal["buy", "sell"]
     order_size: float = Field(gt=0)
     horizon_hours: float = Field(gt=0)
     schedules: list[Union[str, list[float]]] = Field(min_length=2)
@@ -140,7 +139,6 @@ class CompareSchedulesInput(BaseModel):
 
 class EfficientFrontierInput(BaseModel):
     symbol: str
-    side: Literal["buy", "sell"]
     order_size: float = Field(gt=0)
     horizon_hours: float = Field(gt=0)
     lambda_range: list[float] = Field(
@@ -169,7 +167,6 @@ class EfficientFrontierInput(BaseModel):
 
 class SweepInput(BaseModel):
     symbol: str
-    side: Literal["buy", "sell"]
     order_size: float = Field(gt=0)
     horizon_hours: float = Field(gt=0)
     schedule: Literal["twap", "front_loaded", "back_loaded", "ac_linear"]
@@ -589,7 +586,6 @@ def _compare_schedules(inp: CompareSchedulesInput) -> ToolResult:
         "cheapest": cheapest["schedule"],
         "cheapest_cost_bps": cheapest["expected_cost_bps"],
         "symbol": inp.symbol,
-        "side": inp.side,
         "order_size": inp.order_size,
         "horizon_hours": inp.horizon_hours,
     }
@@ -623,18 +619,34 @@ def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
             "variance_bps2": round(var, 4),
         })
 
-    # Knee: maximum curvature heuristic — largest cost drop per variance unit
+    # Knee: point of maximum curvature, taken as the interior point furthest from
+    # the chord joining the two frontier endpoints (the "max distance to chord"
+    # method). Both axes are scale-normalised to [0, 1] first so neither cost nor
+    # variance dominates, and the perpendicular distance is sign-free — so this is
+    # robust to the monotonic direction of the λ grid (cost rises and variance
+    # falls as λ increases, which the previous ratio heuristic got backwards).
     knee = points[0]
     if len(points) > 2:
-        best_ratio = -1.0
+        costs = [p["expected_cost_bps"] for p in points]
+        variances = [p["variance_bps2"] for p in points]
+        c_rng = (max(costs) - min(costs)) or 1.0
+        v_rng = (max(variances) - min(variances)) or 1.0
+
+        def _norm(i: int) -> tuple[float, float]:
+            return (variances[i] - min(variances)) / v_rng, (costs[i] - min(costs)) / c_rng
+
+        x0, y0 = _norm(0)
+        x1, y1 = _norm(len(points) - 1)
+        dx, dy = x1 - x0, y1 - y0
+        chord = math.hypot(dx, dy) or 1.0
+
+        best_dist = -1.0
         for i in range(1, len(points) - 1):
-            cost_drop = points[i - 1]["expected_cost_bps"] - points[i]["expected_cost_bps"]
-            var_gain = points[i]["variance_bps2"] - points[i - 1]["variance_bps2"]
-            if var_gain > 0:
-                ratio = cost_drop / var_gain
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    knee = points[i]
+            xi, yi = _norm(i)
+            dist = abs(dy * xi - dx * yi + x1 * y0 - y1 * x0) / chord
+            if dist > best_dist:
+                best_dist = dist
+                knee = points[i]
 
     detail_id = detail_store.put({"frontier_points": points})
 
@@ -644,7 +656,6 @@ def _efficient_frontier(inp: EfficientFrontierInput) -> ToolResult:
         "knee": knee,
         "n_points": len(points),
         "symbol": inp.symbol,
-        "side": inp.side,
         "order_size": inp.order_size,
         "horizon_hours": inp.horizon_hours,
     }
@@ -728,7 +739,6 @@ def _sweep(inp: SweepInput) -> ToolResult:
         "cost_delta_bps": round(costs[-1] - costs[0], 4),
         "n_points": len(series),
         "symbol": inp.symbol,
-        "side": inp.side,
         "order_size": inp.order_size,
         "horizon_hours": inp.horizon_hours,
     }

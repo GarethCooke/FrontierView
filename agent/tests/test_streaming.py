@@ -395,6 +395,32 @@ def test_error_path_terminal_event_and_closed_stream(monkeypatch):
     )
 
 
+def test_duplicate_nudge_emits_benign_result_not_tool_error():
+    """A first duplicate call is a guard nudge — it must stream as a ToolResultEvent
+    (so the UI shows a benign card), never as a kind='tool' ErrorEvent."""
+    responses = [
+        _tool_response("optimal_schedule", "toolu_1", _TOOL_ARGS),   # real call
+        _tool_response("optimal_schedule", "toolu_2", _TOOL_ARGS),   # duplicate → nudge
+        _text_response("Using the established result."),             # self-correct
+    ]
+
+    sink = RecordingSink()
+    with patch("agent.loop.llm.call", side_effect=responses):
+        run("What is the optimal schedule?", event_sink=sink)
+
+    # No tool-kind error events at all (the nudge must not look like a failure).
+    tool_errors = [e for e in sink.events if isinstance(e, ErrorEvent) and e.kind == "tool"]
+    assert not tool_errors, f"duplicate nudge leaked a tool error: {tool_errors}"
+
+    # The nudge surfaces as a ToolResultEvent carrying an explanatory note.
+    notes = [
+        e for e in sink.events
+        if isinstance(e, ToolResultEvent) and "note" in e.summary
+    ]
+    assert notes, "expected a ToolResultEvent with a duplicate-call note"
+    assert "duplicate" in notes[0].summary["note"].lower()
+
+
 def test_error_path_recording_sink():
     """RecordingSink captures an error event when the loop aborts."""
     # Force duplicate abort: return the same tool call twice

@@ -597,7 +597,7 @@
     }
 
     // Fields that merely echo the tool_call params — already on the call card.
-    const ECHO_FIELDS = { symbol: 1, side: 1, order_size: 1, horizon_hours: 1 };
+    const ECHO_FIELDS = { symbol: 1, order_size: 1, horizon_hours: 1 };
 
     function isPointObj(v) {
       return v && typeof v === "object" && !Array.isArray(v) &&
