@@ -11,6 +11,7 @@ exception.
 
 from __future__ import annotations
 
+import threading
 import time
 
 import anthropic
@@ -18,6 +19,7 @@ import anthropic
 from agent.config import LLM_MAX_RETRIES, MAX_TOKENS, MODEL, TEMPERATURE, api_key
 
 _client: anthropic.Anthropic | None = None
+_client_lock = threading.Lock()
 
 # Delay schedule (seconds) for successive retry attempts: 1s, 2s, 4s, …
 _BACKOFF_BASE = 1.0
@@ -32,7 +34,10 @@ class ProviderBudgetError(Exception):
 def _get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=api_key())
+        # Double-checked locking: worker threads may race on first use.
+        with _client_lock:
+            if _client is None:
+                _client = anthropic.Anthropic(api_key=api_key())
     return _client
 
 

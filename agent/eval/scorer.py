@@ -47,7 +47,12 @@ def extract_values(parsed: dict | None) -> dict[str, float]:
     values = parsed.get("values", {})
     if not isinstance(values, dict):
         return {}
-    return {k: float(v) for k, v in values.items() if isinstance(v, (int, float))}
+    # bool is a subclass of int — exclude it so a stray True/False is not scored as 1/0.
+    return {
+        k: float(v)
+        for k, v in values.items()
+        if isinstance(v, (int, float)) and not isinstance(v, bool)
+    }
 
 
 def is_synthetic(parsed: dict | None) -> bool:

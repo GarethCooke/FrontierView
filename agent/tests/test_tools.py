@@ -143,6 +143,37 @@ def test_efficient_frontier_endpoints_match_cost_and_variance():
     assert low_end["expected_cost_bps"] == direct["summary"]["expected_cost_bps"]
 
 
+def test_efficient_frontier_knee_is_genuine_interior_point():
+    """The knee must be a real curvature elbow, not just the low-λ endpoint.
+
+    Regression for the inverted heuristic that always returned points[0] because
+    cost rises (and variance falls) along the λ grid, so its var_gain>0 guard
+    never fired.
+    """
+    ef = dispatch(
+        "efficient_frontier",
+        {
+            "symbol": "AAPL",
+            "order_size": 500_000,
+            "horizon_hours": 2.0,
+            "lambda_range": [1e-9, 1e-1],
+            "n_points": 15,
+        },
+    )
+    assert "summary" in ef
+    s = ef["summary"]
+    low, knee, high = s["low_lambda_end"], s["knee"], s["high_lambda_end"]
+
+    # The knee is a genuine interior point, distinct from both endpoints.
+    assert knee != low, "knee must not collapse onto the low-λ endpoint"
+    assert knee != high, "knee must not collapse onto the high-λ endpoint"
+
+    # On this monotonic frontier, cost rises and variance falls with λ, so the
+    # knee sits strictly between the endpoints on both axes.
+    assert low["expected_cost_bps"] < knee["expected_cost_bps"] < high["expected_cost_bps"]
+    assert high["variance_bps2"] < knee["variance_bps2"] < low["variance_bps2"]
+
+
 def test_sweep_calibrated_eta_base_matches_cost_and_variance():
     """sweep at the base η value must match a direct ac_linear cost call."""
     from api.parameters import ALMGREN_ETA

@@ -100,9 +100,11 @@ understates.
   `/analyse`; [`docs/calibration.html`](docs/calibration.html) posts to
   `/api/calibration/run`.
 
-CORS is set to `allow_origins=["*"]`
-([`api/main.py:42-47`](api/main.py#L42-L47)), so the API can also be called
-cross-origin, but the shipped UI never needs to — it's same-origin.
+CORS is scoped to a small allowlist of origins
+([`api/main.py:46-60`](api/main.py#L46-L60)) — the portfolio site plus
+localhost, overridable via the `CORS_ALLOW_ORIGINS` env var — rather than `*`.
+The shipped UI never needs CORS at all (it's same-origin); the allowlist exists
+only for deliberate cross-origin callers, and no credentials are sent.
 
 ---
 
@@ -218,12 +220,12 @@ Key pieces under [`agent/`](agent/):
 
 | File | Role |
 |------|------|
-| [`loop.py`](agent/loop.py) | Tool-use execution loop; bounded by `MAX_ITERS`; recovery-policy table for tool/loop/provider errors; duplicate-call detection; truncation retries. |
+| [`loop.py`](agent/loop.py) | Tool-use execution loop; bounded by `MAX_ITERS`; recovery-policy table for tool/loop/provider errors; duplicate-call detection; truncation retries; cooperative cancellation on client disconnect. |
 | [`tools.py`](agent/tools.py) | 8 tools (`cost_and_variance`, `optimal_schedule`, `compare_schedules`, `efficient_frontier`, `sweep`, `list_symbols`, `get_symbol_reference`, `describe_model`) — all delegate to the compute core. |
 | [`llm.py`](agent/llm.py) | **Sole provider-coupling point.** Imports `anthropic`, applies prompt caching, classifies 429-exhaustion into the provider-agnostic `ProviderBudgetError`. |
 | [`config.py`](agent/config.py) | `MODEL=claude-haiku-4-5`, `MAX_ITERS=8`, `MAX_TOKENS=4096`, retry/compaction budgets, eval + judge settings. |
 | [`events.py`](agent/events.py) | SSE event schema (`final_answer`, `error`, `run_finished`, …). |
-| [`compaction.py`](agent/compaction.py) / [`detail_store.py`](agent/detail_store.py) | Context compaction over the threshold; off-band storage of large tool payloads. |
+| [`compaction.py`](agent/compaction.py) / [`detail_store.py`](agent/detail_store.py) | Context compaction over the threshold; thread-safe off-band storage of large tool payloads (UUID-keyed, lock-guarded). |
 | [`eval/`](agent/eval/) | 3-layer offline eval harness (deterministic scorer → structural → LLM-as-judge with `claude-sonnet-4-6`). Not in the request path. |
 
 ### Streaming transport contract
@@ -236,6 +238,10 @@ Key pieces under [`agent/`](agent/):
   in-stream error frames.
 - A blocking worker thread runs the synchronous loop and bridges events to the
   async response via a queue + sentinel (guaranteed in `finally`).
+- **Client disconnect** sets a cancel flag the loop polls each iteration
+  (`should_cancel`), so an abandoned request stops spending model turns at the
+  next boundary rather than running to completion. The in-flight model call
+  itself cannot be interrupted.
 
 ---
 
@@ -269,8 +275,9 @@ Key pieces under [`agent/`](agent/):
   - A custom per-IP [`RateLimiter`](api/rate_limiter.py) for `/agent`
     (5/min + 50/day), checked before the stream opens. Client IP is taken from
     the first hop of `X-Forwarded-For` (Render proxy).
-- **CORS** — `allow_origins=["*"]`, all methods/headers
-  ([`api/main.py:42-47`](api/main.py#L42-L47)).
+- **CORS** — scoped `allow_origins` allowlist (portfolio site + localhost),
+  all methods/headers, overridable via `CORS_ALLOW_ORIGINS`
+  ([`api/main.py:46-60`](api/main.py#L46-L60)). Not `*`; no credentials sent.
 - **Agent gating** — `AGENT_PUBLIC_ENABLED` (truthy: `1`/`true`/`yes`).
 - **Secrets** — `ANTHROPIC_API_KEY` read via `agent/config.py` (`.env` loaded
   through `python-dotenv` in dev; set in the Render dashboard for deploy).

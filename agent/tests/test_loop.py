@@ -54,6 +54,40 @@ def test_loop_handles_max_tokens():
     assert "[TRUNCATED]" not in answer
 
 
+def test_loop_cancels_before_any_model_call():
+    """should_cancel() True at the first poll must return without calling the model."""
+    with patch("agent.loop.llm.call") as mock_call:
+        answer = run("What is the optimal schedule?", should_cancel=lambda: True)
+
+    assert mock_call.call_count == 0, "model must not be called once cancelled"
+    assert "cancel" in answer.lower()
+
+
+def test_loop_cancels_after_first_iteration():
+    """Cancellation takes effect at the next iteration boundary, not mid-call."""
+    tool_args = {
+        "symbol": "AAPL",
+        "order_size": 100_000,
+        "horizon_hours": 2.0,
+        "lambda_risk": 1e-6,
+    }
+    state = {"calls": 0}
+
+    def _spy(*args, **kwargs):
+        state["calls"] += 1
+        return _tool_response("optimal_schedule", f"toolu_{state['calls']}", tool_args)
+
+    # Cancel only after the first model call has happened.
+    def _should_cancel() -> bool:
+        return state["calls"] >= 1
+
+    with patch("agent.loop.llm.call", side_effect=_spy):
+        answer = run("What is the optimal schedule?", should_cancel=_should_cancel)
+
+    assert state["calls"] == 1, "exactly one in-flight model call should complete"
+    assert "cancel" in answer.lower()
+
+
 def test_loop_recovers_from_tool_error():
     """A tool error must be fed back to the model as an observation, not crash the loop."""
     error_args = {

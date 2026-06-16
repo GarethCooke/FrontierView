@@ -32,11 +32,15 @@ Transport contract (unchanged from 4a):
   - Pre-stream rejections (gate/allowlist/rate-limit) are plain JSON HTTP
     responses — never in-stream error frames.
   - The stream always closes cleanly — the worker guarantees a sentinel in finally.
+  - Client disconnect: the response generator's finally sets a cancel flag the
+    worker polls (`should_cancel`), so the loop stops spending model turns at the
+    next iteration boundary. The in-flight model call cannot be interrupted.
 """
 from __future__ import annotations
 
 import asyncio
 import os
+import threading
 import time
 from collections.abc import AsyncGenerator
 
@@ -135,9 +139,16 @@ async def _sse_stream(question: str) -> AsyncGenerator[str, None]:
     queue: asyncio.Queue[object] = asyncio.Queue()
     sink = _QueueSink(loop, queue)
 
+    # Cooperative cancellation: set when the response generator is torn down
+    # (client disconnect or normal close). The worker thread polls it via
+    # should_cancel and stops spending model turns at the next iteration boundary.
+    cancel_event = threading.Event()
+
     async def _worker() -> None:
         try:
-            await asyncio.to_thread(_agent_run, question, event_sink=sink)
+            await asyncio.to_thread(
+                _agent_run, question, event_sink=sink, should_cancel=cancel_event.is_set
+            )
         except Exception as exc:
             base = sink.last_seq
             if _is_budget_exhausted(exc):
@@ -168,6 +179,10 @@ async def _sse_stream(question: str) -> AsyncGenerator[str, None]:
             data = item.model_dump_json()
             yield f"event: {item.type}\ndata: {data}\n\n"
     finally:
+        # Signal cooperative cancellation before joining. On a normal close the
+        # worker has already finished so this is a no-op; on client disconnect it
+        # stops the loop from spending further model turns.
+        cancel_event.set()
         await task
 
 

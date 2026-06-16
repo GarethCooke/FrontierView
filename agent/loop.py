@@ -18,10 +18,10 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from collections.abc import Callable
 
-from agent import events as _events
+from agent import compaction, events as _events
 from agent import llm, tools, trace
-from agent.compaction import compact_messages, estimate_tokens, should_compact
 from agent.config import MAX_ITERS, MAX_TOKENS, TOOL_RETRY_BUDGET
 
 _MAX_TRUNCATION_RETRIES = 2
@@ -72,8 +72,16 @@ def run(
     _eval_capture: list | None = None,
     model: str | None = None,
     event_sink: _events.EventSink | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> str:
-    """Run the agent loop and return the final answer."""
+    """Run the agent loop and return the final answer.
+
+    ``should_cancel`` is an optional callback polled at the top of each iteration;
+    when it returns True the loop stops cooperatively and returns immediately
+    (used by the SSE transport to stop billing model turns after a client
+    disconnect). The in-flight model call cannot be interrupted, so cancellation
+    takes effect at the next iteration boundary.
+    """
     from agent.config import MODEL
     system = _SYSTEM_PROMPT + (_EVAL_MODE_ADDENDUM if eval_mode else "")
     messages: list[dict] = [{"role": "user", "content": question}]
@@ -111,13 +119,21 @@ def run(
 
     for iteration in range(MAX_ITERS):
 
-        # Compact if the transcript has grown too large (before sending to model)
-        if should_compact(messages):
-            before_tok = estimate_tokens(messages) if event_sink is not None else 0
-            messages = compact_messages(messages)
+        # Cooperative cancellation (e.g. SSE client disconnected): stop before
+        # spending another model turn.
+        if should_cancel is not None and should_cancel():
+            trace.step("CANCELLED", f"Run cancelled by caller at iteration {iteration}")
+            return "[run cancelled]"
+
+        # Compact if the transcript has grown too large (before sending to model).
+        # Estimate tokens once and reuse the figure for the compaction event;
+        # the threshold is read through the module so tests can patch it.
+        before_tok = compaction.estimate_tokens(messages)
+        if before_tok >= compaction.COMPACTION_THRESHOLD_TOKENS:
+            messages = compaction.compact_messages(messages)
             trace.step("COMPACTION", f"Transcript compacted at iteration {iteration}")
             if event_sink is not None:
-                after_tok = estimate_tokens(messages)
+                after_tok = compaction.estimate_tokens(messages)
                 event_sink.emit(_mk(
                     _events.CompactionEvent,
                     before_tokens=before_tok,
@@ -138,8 +154,8 @@ def run(
 
         # Over-length output: raise budget and retry; return truncated after cap
         if response.stop_reason == "max_tokens":
-            if should_compact(messages):
-                messages = compact_messages(messages)
+            if compaction.should_compact(messages):
+                messages = compaction.compact_messages(messages)
             truncation_retries += 1
             if truncation_retries > _MAX_TRUNCATION_RETRIES:
                 partial = "\n".join(text_parts)
@@ -245,7 +261,15 @@ def run(
 
             trace.step("TOOL RESULT", result)
             if event_sink is not None:
-                if "error" in result:
+                if result.get("error") == "DuplicateCall":
+                    # Guard nudge, not a genuine tool failure — surface it as a
+                    # benign result so the UI doesn't paint a red error card.
+                    event_sink.emit(_mk(
+                        _events.ToolResultEvent,
+                        name=block.name,
+                        summary={"note": "Duplicate call — reused the established result."},
+                    ))
+                elif "error" in result:
                     event_sink.emit(_mk(
                         _events.ErrorEvent,
                         kind="tool",

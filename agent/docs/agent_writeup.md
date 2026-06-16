@@ -216,7 +216,12 @@ duplicated *inside* `data` so a stream client can dispatch on the JSON alone; a
 15-second keepalive fires on idle. Crucially, **every** stream terminates with a
 uniform `run_finished` event — on success (`… → final_answer → run_finished`), on
 a loop error, and on a budget error alike — so the client has exactly one signal
-that means "the run is over", regardless of how it ended. A representative run:
+that means "the run is over", regardless of how it ended. The bridge is also
+cancellation-aware: if the client disconnects, the response generator sets a flag
+the worker polls each iteration, so an abandoned run stops spending model turns at
+the next boundary rather than billing a full loop to a browser tab that has gone
+away (the in-flight model call can't be interrupted, but the next one isn't made).
+A representative run:
 
 ```
 run_started    {seq:0, config_summary:{model:"claude-haiku-4-5-…", max_iters:8}, question:"…"}
