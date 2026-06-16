@@ -97,6 +97,7 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 #### Phase 4e — Portfolio framing · status: MERGED
 
 - [x] Prominent section on the FV project page + the write-up linked as the long-form. Shares source material with `frontierview_interview_prep.md`.
+- [x] Fast-follow polish: the hosted write-up's `FlowDiagram` was linearised (`question → … → final answer`); re-rendered to the true reason–act–observe topology — `observe → reason` loop-back, `tool_use`/`text, no tool` branch labels, `final answer` peeled off `reason` as the loop exit. See `cc_brief_agent_phase4e_followup_1.md`.
 
 ---
 
@@ -135,4 +136,5 @@ Public-facing surface + the portfolio write-up. Decomposed into gated sub-phases
 - `agent/docs/briefs/cc_brief_agent_phase4a_review_fixes.md` — Phase 4a adversarial-review remediation (F1/F2/F3).
 - `agent/docs/briefs/cc_brief_agent_phase4c_ui_tab.md` — Phase 4c UI-tab wiring brief.
 - `agent/docs/briefs/cc_brief_agent_phase4e_portfolio.md` — Phase 4e portfolio-section build brief (portfolio-hub repo).
+- `agent/docs/briefs/cc_brief_agent_phase4e_followup_1.md` — Phase 4e fast-follow: re-render the write-up loop diagram to the true reason–act–observe topology (portfolio-hub repo).
 - `agent/docs/frontierview_agent_cost_model.xlsx` — driveable per-query / monthly cost model across providers.
