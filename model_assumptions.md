@@ -92,6 +92,28 @@ x(t) = X · sinh(κ(T−t)) / sinh(κT)
 - At very low λ the schedule approaches VWAP (flat); at very high λ it
   front-loads aggressively.
 
+> **Known issue — `κ² = λ·σ²_bin / η̃` is a continuum-limit form, not the discrete
+> argmin.** The expression above drops a factor of `X·τ/10⁴`, so the schedule it generates
+> is not the minimiser of the discrete objective it is meant to solve. Writing the
+> linearised objective as `A·Σ(Δx)² + B·Σx²`, discrete stationarity for the same objective
+> is
+>
+> ```text
+> cosh(κτ) = 1 + μ/2        μ = λ·σ²_bin·10⁴·τ / (X·η̃)
+> ```
+>
+> The two rates differ by ~2.2× for AAPL at 100 k shares. Both trajectories are sinh, so
+> the difference is invisible by eye; it becomes visible only when something grades against
+> this schedule *as if it were optimal*, where it shows up as apparent outperformance of up
+> to ~18 % on the frozen objective (AAPL, 100 k shares, λ = 1e-4).
+>
+> **Recorded, not fixed — deliberately.** Downstream, Temper's vendored goldens pin the
+> current convention at `f87795f6` and carry both rates (`ac_kappa` reproducing this
+> expression, `optimal_kappa` solving the discrete condition), so adopting the discrete form
+> here is a golden re-vendor with fresh provenance rather than a downstream break. The
+> derivation and its consequences are written up in Temper's `ARCHITECTURE.md` §9 entry
+> *The oracle carries two Almgren–Chriss decay rates, not one*.
+
 ---
 
 ## 7. Symbol parameters
@@ -135,3 +157,6 @@ on the frontier are the model's primary output.
 - [ ] Schedule-invariance of permanent cost relies on linear g; switching to a
       non-linear permanent impact would break this property and require revisiting
       the cost decomposition.
+- [ ] `ac_linear`'s κ is the continuum-limit rate, not the discrete argmin — see the
+      known-issue note in § 6. The correction (`cosh(κτ) = 1 + μ/2`) is worked out there;
+      adopting it is a downstream golden re-vendor, not a break.
