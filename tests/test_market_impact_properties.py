@@ -14,6 +14,7 @@ Tests:
   7. Regime ordering (stressed > normal > calm)
   8. Frontier monotonicity
   9. Schedule normalisation
+ 10. Vendored κ relates to the discrete argmin by a known rescaling
 """
 
 import math
@@ -35,7 +36,7 @@ from api.market_impact import (
     schedule_twap,
     temporary_impact,
 )
-from api.parameters import SymbolParams
+from api.parameters import SYMBOL_PARAMS, SymbolParams
 
 # ---------------------------------------------------------------------------
 # Strategies
@@ -481,3 +482,37 @@ def test_schedule_normalisation(params, order_size, horizon_hours, n_bins):
             f"{name} total executed {total:.6f} ≠ order_size {order_size:.6f} "
             f"(rel error {abs(total - order_size) / order_size:.2e})"
         )
+
+
+# ---------------------------------------------------------------------------
+# Test 10: VENDORED κ vs DISCRETE ARGMIN — KNOWN RESCALING
+# ---------------------------------------------------------------------------
+
+
+def test_vendored_kappa_relates_to_discrete_argmin_by_known_rescaling():
+    """kappa_ac^2 / kappa_opt^2 -> X*dt/1e4 as mu -> 0; 2.24x at the documented config.
+
+    Mirrors Temper's test from the opposite side: a casual "fix" of the vendored
+    convention outside a golden re-vendor must fail loudly in both repos.
+    """
+    params = SYMBOL_PARAMS["AAPL"]
+    X, horizon, n_bins = 1e5, 6.5, 13
+    dt = horizon / n_bins
+    v_hourly = params.adv / TRADING_HOURS_PER_DAY
+    sigma_bin = params.sigma * math.sqrt(dt / TRADING_HOURS_PER_DAY)
+    eta_tilde = _linearised_eta(params.eta, params.sigma, v_hourly, X, horizon)
+
+    def kappa_opt(lam):
+        mu = lam * sigma_bin**2 * 1e4 * dt / (X * eta_tilde)
+        return math.acosh(1.0 + mu / 2.0) / dt
+
+    # small-mu limit: pure units factor
+    lam = 1e-9
+    ratio2 = _ac_kappa(lam, sigma_bin, eta_tilde) ** 2 / kappa_opt(lam) ** 2
+    assert ratio2 == pytest.approx(X * dt / 1e4, rel=1e-6)
+
+    # documented config: the headline 2.24x, and the rates are genuinely distinct
+    lam = 1e-4
+    k_ac, k_op = _ac_kappa(lam, sigma_bin, eta_tilde), kappa_opt(lam)
+    assert k_ac / k_op == pytest.approx(2.2407, rel=1e-3)
+    assert not math.isclose(k_ac, k_op, rel_tol=1e-3)

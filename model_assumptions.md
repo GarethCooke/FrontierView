@@ -92,20 +92,27 @@ x(t) = X · sinh(κ(T−t)) / sinh(κT)
 - At very low λ the schedule approaches VWAP (flat); at very high λ it
   front-loads aggressively.
 
-> **Known issue — `κ² = λ·σ²_bin / η̃` is a continuum-limit form, not the discrete
-> argmin.** The expression above drops a factor of `X·τ/10⁴`, so the schedule it generates
-> is not the minimiser of the discrete objective it is meant to solve. Writing the
-> linearised objective as `A·Σ(Δx)² + B·Σx²`, discrete stationarity for the same objective
-> is
+> **Known issue — `κ² = λ·σ²_bin / η̃` is not the argmin of the objective it schedules for.**
+> The expression is the textbook continuum rate transcribed across a units-convention change
+> (λ per bps of notional rather than per dollar; σ per bin rather than per hour), leaving a
+> net factor of `X·τ/10⁴`. Writing the linearised objective as `A·Σ(Δx)² + B·Σx²` with
+> `A = η̃·10⁴/(X·τ)` and `B = λ·(σ_bin·10⁴)²/X²`, discrete stationarity gives
 >
 > ```text
 > cosh(κτ) = 1 + μ/2        μ = λ·σ²_bin·10⁴·τ / (X·η̃)
 > ```
 >
-> The two rates differ by ~2.2× for AAPL at 100 k shares. Both trajectories are sinh, so
-> the difference is invisible by eye; it becomes visible only when something grades against
-> this schedule *as if it were optimal*, where it shows up as apparent outperformance of up
-> to ~18 % on the frozen objective (AAPL, 100 k shares, λ = 1e-4).
+> The rates differ by `√(X·τ/10⁴)` in the small-μ limit — 2.24× for AAPL at 100 k shares on
+> half-hour bins — growing like `√X` and flipping direction below `X·τ = 10⁴` (~20 k shares at
+> τ = 0.5 h), where the schedule under-front-loads instead. The genuine discrete-vs-continuum
+> correction is ~0.2 % at these parameters (μ = 0.05); the units factor is essentially all of
+> the gap. Both rates generate sinh trajectories, so either looks plausible in isolation, but
+> at the quoted configuration they differ visibly (first-bin fill 39 % vs 20 %). Every vendored
+> schedule is exactly optimal at a *rescaled* λ, so the frontier as a curve is unchanged; only
+> the λ → schedule indexing is off. The miscalibration matters only when something grades
+> against this schedule as if it were optimal at the stated λ: the true optimum beats it by
+> 18.0 % of the optimum's objective (15.3 % of the vendored schedule's) on the frozen
+> linearised objective (AAPL, 100 k shares, λ = 1e-4).
 >
 > **Recorded, not fixed — deliberately.** Downstream, Temper's vendored goldens pin the
 > current convention at `f87795f6` and carry both rates (`ac_kappa` reproducing this
@@ -157,6 +164,7 @@ on the frontier are the model's primary output.
 - [ ] Schedule-invariance of permanent cost relies on linear g; switching to a
       non-linear permanent impact would break this property and require revisiting
       the cost decomposition.
-- [ ] `ac_linear`'s κ is the continuum-limit rate, not the discrete argmin — see the
-      known-issue note in § 6. The correction (`cosh(κτ) = 1 + μ/2`) is worked out there;
-      adopting it is a downstream golden re-vendor, not a break.
+- [ ] `ac_linear`'s κ is not the discrete argmin at the stated λ — off by `√(X·τ/10⁴)`
+      via a units-convention transcription (discretisation itself contributes ~0.2 %).
+      The frontier curve is unaffected; the λ indexing is. Correction
+      (`cosh(κτ) = 1 + μ/2`) in § 6; adopting it is a downstream golden re-vendor, not a break.

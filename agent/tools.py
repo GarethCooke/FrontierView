@@ -285,8 +285,8 @@ TOOLS: list[dict] = [
     {
         "name": "optimal_schedule",
         "description": (
-            "Compute the Almgren-Chriss optimal execution schedule for a given risk-aversion "
-            "level λ, returning schedule bins and their cost/variance."
+            "Compute the Almgren-Chriss closed-form (sinh family) execution schedule for a "
+            "given risk-aversion level λ, returning schedule bins and their cost/variance."
         ),
         "input_schema": _SCHEMAS["optimal_schedule"],
     },
@@ -808,7 +808,10 @@ def _describe_model(_inp: DescribeModelInput) -> ToolResult:
         ],
         "notes": [
             "Per-symbol ADV, σ, and half-spread are stored reference values, not a live feed.",
-            "The AC linear schedule minimises E[cost] + λ·Var[shortfall] on a linearised impact model.",
+            "The AC linear schedule is the closed-form sinh family that minimises "
+            "E[cost] + λ·Var[shortfall] on a linearised impact model. The vendored decay rate "
+            "κ² = λ·σ²_bin/η̃ attains that minimum at a rescaled λ, not the λ passed in, so do "
+            "not describe the returned schedule as optimal at the stated λ.",
         ],
     }
     detail_id = detail_store.put(payload)
