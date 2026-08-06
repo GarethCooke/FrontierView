@@ -42,8 +42,8 @@ function:
 | Tool | What it answers |
 |------|-----------------|
 | `cost_and_variance` | Expected cost (bps) and variance for a given order under a named schedule, with the temporary / permanent / spread decomposition. |
-| `optimal_schedule` | The cost-minimising trajectory for a risk-aversion `lambda`. |
-| `compare_schedules` | TWAP vs front/back-loaded vs AC-optimal for the same order. |
+| `optimal_schedule` | The Almgren–Chriss sinh trajectory for a risk-aversion `lambda`. |
+| `compare_schedules` | TWAP vs front/back-loaded vs AC linear for the same order. |
 | `efficient_frontier` | The cost–risk frontier across a `lambda` sweep. |
 | `sweep` | Sensitivity of cost to a swept parameter (order size, horizon, volatility regime). |
 | `list_symbols` | The symbol universe. |
@@ -78,13 +78,18 @@ the whole system.
 One subtlety matters for reading the charts honestly, and the write-up names it
 explicitly because it is exactly the kind of thing a careless implementation
 gets wrong. FrontierView also plots an **"AC-optimal" trajectory**. That curve is
-the *closed-form* optimal schedule from **Almgren–Chriss (2001)**, which is
-derived under a **linear** temporary-impact assumption, evaluated against the
-0.6 power-law cost. Because the closed form is optimal only under its own linear
-assumption, it is **deliberately sub-optimal when scored under the concave 0.6
-model** — the gap between it and the true frontier is a *correct* property of the
-comparison, not a defect to be "fixed". The 0.6 exponent applies to temporary
-impact only; permanent impact stays linear. Encoding that distinction precisely
+the *closed-form* schedule from **Almgren–Chriss (2001)**, which is derived under
+a **linear** temporary-impact assumption, evaluated against the 0.6 power-law
+cost. Because the closed form is optimal only under its own linear assumption, it
+is **deliberately sub-optimal when scored under the concave 0.6 model** — the gap
+between it and the true frontier is a *correct* property of the comparison, not a
+defect to be "fixed". A second, narrower caveat sits underneath that one: the
+vendored decay rate κ minimises the linearised objective at a *rescaled* λ rather
+than the λ the schedule is indexed by, so "optimal at this λ" is the one claim
+the curve does not support — see
+[`model_assumptions.md`](../../model_assumptions.md) § 6. The frontier as a curve
+is unaffected. The 0.6 exponent applies to temporary impact only; permanent
+impact stays linear. Encoding that distinction precisely
 — in the model, in the agent's `describe_model` text, and in the eval rubric — is
 part of the point of the project.
 
@@ -335,7 +340,8 @@ rests on not making that kind of claim.
 **AC schedules sub-optimal under the 0.6 power-law — a feature, not a bug.** The
 "AC-optimal" frontier looks like it should be the best curve and isn't, under the
 0.6 model. That's correct: the closed form is optimal only under the linear
-assumption it was derived with. Encoding this in the rubric as something the agent
+assumption it was derived with — and, per `model_assumptions.md` § 6, only at a
+rescaled λ even there. Encoding this in the rubric as something the agent
 is *expected* to explain — rather than something to paper over — is what
 distinguishes a write-up by someone who understands the model from one by someone
 who wired up an API.

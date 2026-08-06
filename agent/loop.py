@@ -35,7 +35,7 @@ Symbol reference values are STORED DATA, not a live feed — always caveat accor
 
 Tool overview:
 - cost_and_variance: cost & variance for a single execution schedule
-- optimal_schedule: Almgren-Chriss optimal schedule at a given risk-aversion λ
+- optimal_schedule: Almgren-Chriss closed-form (sinh) schedule at a given risk-aversion λ
 - compare_schedules: side-by-side comparison of multiple schedules (preferred over repeated cost calls)
 - efficient_frontier: cost/variance frontier across a λ grid
 - sweep: sensitivity analysis — vary one model parameter over a range

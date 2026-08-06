@@ -139,10 +139,12 @@ def schedule_ac_linear(
     params: SymbolParams,
     lambda_risk: float = 1e-6,
 ) -> list[tuple[int, float]]:
-    """Almgren-Chriss closed-form optimal liquidation schedule.
+    """Almgren-Chriss closed-form liquidation schedule (sinh family).
 
-    Minimises E[cost] + λ · Var[shortfall] on a linearised impact model.
-    At low λ the schedule approaches TWAP; at high λ it front-loads aggressively.
+    The decay rate is the vendored convention κ² = λ·σ²_bin/η̃, which minimises
+    the linearised E[cost] + λ·Var[shortfall] at a *rescaled* λ, not the λ
+    passed — see model_assumptions.md §6. At low λ the schedule approaches
+    TWAP; at high λ it front-loads aggressively.
     """
     v_hourly = params.adv / TRADING_HOURS_PER_DAY
     dt = horizon_hours / n_bins
