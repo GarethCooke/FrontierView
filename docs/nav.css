@@ -276,3 +276,46 @@ a:hover {
     margin-left: 0;
   }
 }
+
+/* ── Footer ────────────────────────────────────────────── */
+/* <footer> is a sibling of .layout, not a child, so it needs the same 80px rail
+   offset AND the same reset below 700px — where .nav is display:none and the
+   rail no longer exists. Defined here so the two move together. */
+footer {
+  margin-left: 80px;
+  /* Horizontal gutter lives here, not in each page's <style> block — those come
+     after this stylesheet and would win on equal specificity. Vertical padding
+     stays per-page, since it genuinely differs. 48px preserves the previous
+     mobile rendering exactly; the >=701px block below replaces it with the
+     centring calc. */
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+@media (max-width: 700px) {
+  footer {
+    margin-left: 0;
+  }
+}
+
+/* ── Band alignment ──────────────────────────────────────────────────────────
+   Three bands were centring against different containing blocks:
+     .topnav-inner  centres in the FULL viewport
+     .content       centres in (viewport - 80px rail), because .layout is offset
+     footer         no max-width at all, 48px gutters
+   so their left edges sat 40px+ apart. Padding .topnav by the rail width puts
+   .topnav-inner in the same containing block as .content, and the calc gives the
+   footer the same centred 1120px column without needing a wrapper element.
+   Scoped above 700px only: below that the rail is display:none, margin-left is
+   reset to 0, and mobile rendering is deliberately left exactly as it was.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 701px) {
+  .topnav {
+    padding-left: 80px;
+  }
+
+  footer {
+    padding-left: max(24px, calc((100% - 1200px) / 2 + 24px));
+    padding-right: max(24px, calc((100% - 1200px) / 2 + 24px));
+  }
+}
